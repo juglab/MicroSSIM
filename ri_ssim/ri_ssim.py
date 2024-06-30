@@ -1,4 +1,4 @@
-from ri_ssim._ssim_raw import structural_similarity_dict
+from _ssim_raw import structural_similarity_dict
 import numpy as np
 from scipy.optimize import minimize
 from typing import Dict, Union
@@ -13,7 +13,7 @@ def _ssim_from_params(alpha, ux, uy, vx, vy, vxy, C1, C2):
     )
     D = B1 * B2
     S = (A1 * A2) / D
-    return np.mean(-1 * S)
+    return np.mean(S)
 
 
 def _get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
@@ -66,3 +66,30 @@ def range_invariant_structural_similarity(
     )
 
     return _ssim_from_params(ri_factor, ux, uy, vx, vy, vxy, C1, C2)
+
+
+if __name__ == "__main__":
+    import numpy as np
+    from skimage.io import imread
+
+    def load_tiff(path):
+        """
+        Returns a 4d numpy array: num_imgs*h*w*num_channels
+        """
+        data = imread(path, plugin="tifffile")
+        return data
+
+    img1 = load_tiff(
+        "/group/jug/ashesh/data/paper_stats/Test_P64_G32_M50_Sk8/gt_D21.tif"
+    )
+    img2 = load_tiff(
+        "/group/jug/ashesh/data/paper_stats/Test_P64_G32_M50_Sk8/pred_training_disentangle_2404_D21-M3-S0-L8_1.tif"
+    )
+    ch_idx = 0
+    print(
+        range_invariant_structural_similarity(
+            img1[0, ..., ch_idx],
+            img2[0, ..., ch_idx],
+            data_range=img1[0, ..., ch_idx].max() - img1[0, ..., ch_idx].min(),
+        )
+    )
