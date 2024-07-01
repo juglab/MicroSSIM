@@ -1,4 +1,5 @@
 from _ssim_raw import structural_similarity_dict
+from _mse_ri_factor import get_mse_based_factor
 import numpy as np
 from scipy.optimize import minimize
 from typing import Dict, Union
@@ -33,9 +34,33 @@ def _get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
     return res.x[0]
 
 
+def mse_based_range_invariant_structural_similarity(
+    target_img,
+    pred_img,
+    *,
+    win_size=None,
+    data_range=None,
+    channel_axis=None,
+    gaussian_weights=False,
+    **kwargs,
+):
+    ri_factor = get_mse_based_factor(target_img[None], pred_img[None])
+
+    return range_invariant_structural_similarity(
+        target_img,
+        pred_img,
+        win_size=win_size,
+        data_range=data_range,
+        channel_axis=channel_axis,
+        gaussian_weights=gaussian_weights,
+        ri_factor=ri_factor,
+        **kwargs,
+    )
+
+
 def range_invariant_structural_similarity(
-    im1,
-    im2,
+    target_img,
+    pred_img,
     *,
     win_size=None,
     data_range=None,
@@ -45,8 +70,8 @@ def range_invariant_structural_similarity(
     **kwargs,
 ):
     ssim_dict = structural_similarity_dict(
-        im1,
-        im2,
+        target_img,
+        pred_img,
         win_size=win_size,
         data_range=data_range,
         channel_axis=channel_axis,
@@ -86,10 +111,32 @@ if __name__ == "__main__":
         "/group/jug/ashesh/data/paper_stats/Test_P64_G32_M50_Sk8/pred_training_disentangle_2404_D21-M3-S0-L8_1.tif"
     )
     ch_idx = 0
+    img_gt = img1[0, ..., ch_idx]
+    img_pred = img2[0, ..., ch_idx]
     print(
+        "SSIM",
         range_invariant_structural_similarity(
-            img1[0, ..., ch_idx],
-            img2[0, ..., ch_idx],
-            data_range=img1[0, ..., ch_idx].max() - img1[0, ..., ch_idx].min(),
-        )
+            img_gt,
+            img_pred,
+            data_range=img_gt.max() - img_gt.min(),
+            ri_factor=1.0,
+        ),
+    )
+
+    print(
+        "RI-SSIM",
+        range_invariant_structural_similarity(
+            img_gt,
+            img_pred,
+            data_range=img_gt.max() - img_gt.min(),
+        ),
+    )
+
+    print(
+        "RI-SSIM using MSE based:",
+        mse_based_range_invariant_structural_similarity(
+            img_gt,
+            img_pred,
+            data_range=img_gt.max() - img_gt.min(),
+        ),
     )
