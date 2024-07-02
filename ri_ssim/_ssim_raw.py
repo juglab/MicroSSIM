@@ -11,8 +11,8 @@ from skimage.util.dtype import dtype_range
 
 
 def structural_similarity_dict(
-    im1,
-    im2,
+    img_x,
+    img_y,
     *,
     win_size=None,
     data_range=None,
@@ -26,7 +26,7 @@ def structural_similarity_dict(
 
     Parameters
     ----------
-    im1, im2 : ndarray
+    img_x, img_y : ndarray
         Images. Any dimensionality with same shape.
     win_size : int or None, optional
         The side-length of the sliding window used in comparison. Must be an
@@ -111,8 +111,8 @@ def structural_similarity_dict(
        :DOI:`10.1007/s10043-009-0119-z`
 
     """
-    check_shape_equality(im1, im2)
-    float_type = _supported_float_type(im1.dtype)
+    check_shape_equality(img_x, img_y)
+    float_type = _supported_float_type(img_x.dtype)
 
     if channel_axis is not None:
         raise NotImplementedError(
@@ -144,7 +144,7 @@ def structural_similarity_dict(
         else:
             win_size = 7  # backwards compatibility
 
-    if np.any((np.asarray(im1.shape) - win_size) < 0):
+    if np.any((np.asarray(img_x.shape) - win_size) < 0):
         raise ValueError(
             "win_size exceeds image extent. "
             "Either ensure that your images are "
@@ -160,8 +160,8 @@ def structural_similarity_dict(
         raise ValueError("Window size must be odd.")
 
     if data_range is None:
-        if np.issubdtype(im1.dtype, np.floating) or np.issubdtype(
-            im2.dtype, np.floating
+        if np.issubdtype(img_x.dtype, np.floating) or np.issubdtype(
+            img_y.dtype, np.floating
         ):
             raise ValueError(
                 "Since image dtype is floating point, you must specify "
@@ -169,22 +169,22 @@ def structural_similarity_dict(
                 "carefully (including the note). It is recommended that "
                 "you always specify the data_range anyway."
             )
-        if im1.dtype != im2.dtype:
+        if img_x.dtype != img_y.dtype:
             warn(
-                "Inputs have mismatched dtypes. Setting data_range based on im1.dtype.",
+                "Inputs have mismatched dtypes. Setting data_range based on img_x.dtype.",
                 stacklevel=2,
             )
-        dmin, dmax = dtype_range[im1.dtype.type]
+        dmin, dmax = dtype_range[img_x.dtype.type]
         data_range = dmax - dmin
-        if np.issubdtype(im1.dtype, np.integer) and (im1.dtype != np.uint8):
+        if np.issubdtype(img_x.dtype, np.integer) and (img_x.dtype != np.uint8):
             warn(
-                "Setting data_range based on im1.dtype. "
+                "Setting data_range based on img_x.dtype. "
                 + f"data_range = {data_range:.0f}. "
                 + "Please specify data_range explicitly to avoid mistakes.",
                 stacklevel=2,
             )
 
-    ndim = im1.ndim
+    ndim = img_x.ndim
 
     if gaussian_weights:
         filter_func = gaussian
@@ -194,8 +194,8 @@ def structural_similarity_dict(
         filter_args = {"size": win_size}
 
     # ndimage filters need floating point data
-    im1 = im1.astype(float_type, copy=False)
-    im2 = im2.astype(float_type, copy=False)
+    img_x = img_x.astype(float_type, copy=False)
+    img_y = img_y.astype(float_type, copy=False)
 
     NP = win_size**ndim
 
@@ -206,13 +206,13 @@ def structural_similarity_dict(
         cov_norm = 1.0  # population covariance to match Wang et. al. 2004
 
     # compute (weighted) means
-    ux = filter_func(im1, **filter_args)
-    uy = filter_func(im2, **filter_args)
+    ux = filter_func(img_x, **filter_args)
+    uy = filter_func(img_y, **filter_args)
 
     # compute (weighted) variances and covariances
-    uxx = filter_func(im1 * im1, **filter_args)
-    uyy = filter_func(im2 * im2, **filter_args)
-    uxy = filter_func(im1 * im2, **filter_args)
+    uxx = filter_func(img_x * img_x, **filter_args)
+    uyy = filter_func(img_y * img_y, **filter_args)
+    uxy = filter_func(img_x * img_y, **filter_args)
     vx = cov_norm * (uxx - ux * ux)
     vy = cov_norm * (uyy - uy * uy)
     vxy = cov_norm * (uxy - ux * uy)
@@ -250,7 +250,7 @@ def structural_similarity_dict(
     # if gradient:
     #     # The following is Eqs. 7-8 of Avanaki 2009.
     #     grad = filter_func(A1 / D, **filter_args) * im1
-    #     grad += filter_func(-S / B2, **filter_args) * im2
+    #     grad += filter_func(-S / B2, **filter_args) * img_y
     #     grad += filter_func((ux * (A2 - A1) - uy * (B2 - B1) * S) / D, **filter_args)
     #     grad *= 2 / im1.size
 
