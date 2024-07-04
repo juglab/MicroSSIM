@@ -18,6 +18,7 @@ def structural_similarity_dict(
     data_range=None,
     channel_axis=None,
     gaussian_weights=False,
+    return_contrast_sensitivity=False,
     **kwargs,
 ):
     """
@@ -221,6 +222,12 @@ def structural_similarity_dict(
     C1 = (K1 * R) ** 2
     C2 = (K2 * R) ** 2
 
+    pad = (win_size - 1) // 2
+    ux = ux[pad:-pad, pad:-pad].copy()
+    uy = uy[pad:-pad, pad:-pad].copy()
+    vxy = vxy[pad:-pad, pad:-pad].copy()
+    vx = vx[pad:-pad, pad:-pad].copy()
+    vy = vy[pad:-pad, pad:-pad].copy()
     return {
         "ux": ux,
         "uy": uy,

@@ -33,7 +33,7 @@ def _ssim_from_params(
     return np.mean(S)
 
 
-def _get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
+def get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
     other_args = (
         ssim_dict["ux"],
         ssim_dict["uy"],
@@ -63,7 +63,7 @@ def mse_based_range_invariant_structural_similarity(
 ):
     ri_factor = get_mse_based_factor(target_img[None], pred_img[None])
 
-    return range_invariant_structural_similarity(
+    return micro_SSIM(
         target_img,
         pred_img,
         win_size=win_size,
@@ -76,7 +76,7 @@ def mse_based_range_invariant_structural_similarity(
     )
 
 
-def range_invariant_structural_similarity(
+def micro_SSIM(
     target_img,
     pred_img,
     *,
@@ -98,7 +98,7 @@ def range_invariant_structural_similarity(
         **kwargs,
     )
     if ri_factor is None:
-        ri_factor = _get_ri_factor(ssim_dict)
+        ri_factor = get_ri_factor(ssim_dict)
     ux, uy, vx, vy, vxy, C1, C2 = (
         ssim_dict["ux"],
         ssim_dict["uy"],

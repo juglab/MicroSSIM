@@ -1,3 +1,3 @@
-from .ri_ssim import range_invariant_structural_similarity
+from .ri_ssim import micro_SSIM
 
-__all__ = ["range_invariant_structural_similarity"]
+__all__ = ["micro_SSIM"]
