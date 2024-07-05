@@ -2,11 +2,13 @@
 Multi-scale Microscopy Structural Similarity Index (MS-MicroSSIM) implementation
 """
 
+from typing import Tuple, Union
+
+import torch
+from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
+
 from ._ssim_raw import structural_similarity_dict
 from .ri_ssim import get_ri_factor
-from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
-import torch
-from typing import Union, Tuple
 
 
 def micro_MS_SSIM(
