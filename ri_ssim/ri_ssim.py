@@ -1,8 +1,10 @@
-from ._ssim_raw import structural_similarity_dict
-from ._mse_ri_factor import get_mse_based_factor
+from typing import Dict, Union
+
 import numpy as np
 from scipy.optimize import minimize
-from typing import Dict, Union
+
+from ._mse_ri_factor import get_mse_based_factor
+from ._ssim_raw import structural_similarity_dict
 
 
 def _ssim_from_params(
@@ -28,6 +30,13 @@ def _ssim_from_params(
             "contrast": contrast,
             "structure": structure,
             "alpha": alpha,
+            "ux": ux,
+            "uy": uy,
+            "vx": vx,
+            "vy": vy,
+            "vxy": vxy,
+            "C1": C1,
+            "C2": C2,
         }
 
     return np.mean(S)
@@ -83,7 +92,7 @@ def micro_SSIM(
     win_size=None,
     data_range=None,
     channel_axis=None,
-    gaussian_weights=False,
+    gaussian_weights=True,
     ri_factor: Union[float, None] = None,
     return_individual_components: bool = False,
     **kwargs,
@@ -120,6 +129,15 @@ def micro_SSIM(
         C2,
         return_individual_components=return_individual_components,
     )
+
+
+def remove_background(x, pmin=3, dtype=np.float32):
+    mi = np.percentile(x, pmin, keepdims=True)
+    if dtype is not None:
+        x = x.astype(dtype, copy=False)
+        mi = dtype(mi) if np.isscalar(mi) else mi.astype(dtype, copy=False)
+        x = x - mi
+    return x
 
 
 # if __name__ == "__main__":
