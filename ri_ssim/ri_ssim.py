@@ -6,12 +6,13 @@ from typing import Dict, Union
 
 
 def _ssim_from_params(
-    alpha, ux, uy, vx, vy, vxy, C1, C2, return_individual_components=False
+    scaling_params, ux, uy, vx, vy, vxy, C1, C2, return_individual_components=False
 ):
+    alpha, beta = scaling_params
     A1, A2, B1, B2 = (
-        2 * alpha * ux * uy + C1,
+        2 *  ux * (alpha *uy + beta) + C1,
         2 * alpha * vxy + C2,
-        ux**2 + (alpha**2) * uy**2 + C1,
+        ux**2 + (alpha *uy + beta)**2 + C1,
         vx + (alpha**2) * vy + C2,
     )
     D = B1 * B2
@@ -43,11 +44,11 @@ def get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
         ssim_dict["C1"],
         ssim_dict["C2"],
     )
-    initial_guess = np.array([1])
+    initial_guess = np.array([1, 0.0])
     res = minimize(
         lambda *args: -1 * _ssim_from_params(*args), initial_guess, args=other_args
     )
-    return res.x[0]
+    return res.x
 
 
 def mse_based_range_invariant_structural_similarity(
