@@ -5,11 +5,47 @@ from scipy.optimize import minimize
 
 from ._mse_ri_factor import get_mse_based_factor
 from ._ssim_raw import structural_similarity_dict
+from tqdm import tqdm
+
+def _ssim_from_params_with_C3(alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False):
+    
+    lum_num = 2 * alpha * ux * uy + C1
+    lum_denom = ux**2 + (alpha**2) * uy**2 + C1
+    
+    contrast_num = 2 * alpha * np.sqrt(vx * vy) + C2
+    contrast_denom = vx + (alpha**2) * vy + C2
+    
+    structure_denom = alpha * np.sqrt(vx * vy) + C3
+    structure_num = alpha * vxy + C3
+
+    num = lum_num * contrast_num * structure_num
+    denom = lum_denom * contrast_denom * structure_denom
+    S = num / denom
+    if return_individual_components:
+        return {
+            "SSIM": S,
+            "luminance": lum_num / lum_denom,
+            "contrast": contrast_num / contrast_denom,
+            "structure": structure_num / structure_denom,
+            "alpha": alpha,
+            "ux": ux,
+            "uy": uy,
+            "vx": vx,
+            "vy": vy,
+            "vxy": vxy,
+            "C1": C1,
+            "C2": C2,
+            "C3": C3,
+        }
+    return np.mean(S)
 
 
 def _ssim_from_params(
-    alpha, ux, uy, vx, vy, vxy, C1, C2, return_individual_components=False
+    alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False
 ):
+    if C3 is not None:
+        return _ssim_from_params_with_C3(alpha, ux, uy, vx, vy, vxy, C1, C2, C3=C3, return_individual_components=return_individual_components)
+
     A1, A2, B1, B2 = (
         2 * alpha * ux * uy + C1,
         2 * alpha * vxy + C2,
@@ -20,6 +56,7 @@ def _ssim_from_params(
     S = (A1 * A2) / D
 
     if return_individual_components:
+
         term = 2 * alpha * np.sqrt(vx * vy) + C2
         luminance = A1 / B1
         contrast = term / B2
@@ -58,6 +95,75 @@ def get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
     )
     return res.x[0]
 
+def get_transformation_params(gt, pred, **ssim_kwargs):
+    ux_arr = []
+    uy_arr = []
+    vx_arr = []
+    vy_arr = []
+    vxy_arr = []
+
+    for idx in tqdm(range(len(gt))):
+        gt_tmp = gt[idx]
+        pred_tmp = pred[idx]
+
+        ssim_dict = structural_similarity_dict(
+            gt_tmp,
+            pred_tmp,
+            data_range=gt_tmp.max() - gt_tmp.min(),
+            return_individual_components=True,
+            **ssim_kwargs,
+        )
+        ux, uy, vx, vy, vxy, C1, C2 = (
+            ssim_dict["ux"],
+            ssim_dict["uy"],
+            ssim_dict["vx"],
+            ssim_dict["vy"],
+            ssim_dict["vxy"],
+            ssim_dict["C1"],
+            ssim_dict["C2"],
+        )
+        ux_arr.append(ux)
+        uy_arr.append(uy)
+        vx_arr.append(vx)
+        vy_arr.append(vy)
+        vxy_arr.append(vxy)
+
+    ux = np.concatenate(ux_arr, axis=0)
+    uy = np.concatenate(uy_arr, axis=0)
+    vx = np.concatenate(vx_arr, axis=0)
+    vy = np.concatenate(vy_arr, axis=0)
+    vxy = np.concatenate(vxy_arr, axis=0)
+
+    other_args = (
+        ux,
+        uy,
+        vx,
+        vy,
+        vxy,
+        C1,
+        C2,
+    )
+
+    initial_guess = np.array([1])
+    res = minimize(
+        lambda *args: -1 * _ssim_from_params(*args), initial_guess, args=other_args
+    )
+    return res.x[0]
+
+    # initial_guess = np.array([1])
+    # res = minimize(
+    #     lambda *args: -1 * _contrast_sensitivity_from_params(*args),
+    #     initial_guess,
+    #     args=other_args,
+    # )
+    # alpha = res.x[0]
+    # initial_guess = np.array([0])
+    # new_args = (alpha,) + other_args
+    # res = minimize(
+    #     lambda *args: -1 * _luminance_from_params(*args), initial_guess, args=new_args
+    # )
+    # offset = res.x[0]
+    # return alpha, offset
 
 def mse_based_range_invariant_structural_similarity(
     target_img,
@@ -108,7 +214,7 @@ def micro_SSIM(
     )
     if ri_factor is None:
         ri_factor = get_ri_factor(ssim_dict)
-    ux, uy, vx, vy, vxy, C1, C2 = (
+    ux, uy, vx, vy, vxy, C1, C2, C3 = (
         ssim_dict["ux"],
         ssim_dict["uy"],
         ssim_dict["vx"],
@@ -116,6 +222,7 @@ def micro_SSIM(
         ssim_dict["vxy"],
         ssim_dict["C1"],
         ssim_dict["C2"],
+        ssim_dict["C3"],
     )
 
     return _ssim_from_params(
@@ -127,6 +234,7 @@ def micro_SSIM(
         vxy,
         C1,
         C2,
+        C3=C3,
         return_individual_components=return_individual_components,
     )
 

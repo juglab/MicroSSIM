@@ -123,6 +123,8 @@ def structural_similarity_dict(
 
     K1 = kwargs.pop("K1", 0.01)
     K2 = kwargs.pop("K2", 0.03)
+    K3 = kwargs.pop("K3", None)
+
     sigma = kwargs.pop("sigma", 1.5)
     if K1 < 0:
         raise ValueError("K1 must be positive")
@@ -221,6 +223,7 @@ def structural_similarity_dict(
     R = data_range
     C1 = (K1 * R) ** 2
     C2 = (K2 * R) ** 2
+    C3 = None if K3 is None else (K3 * R) ** 2
 
     pad = (win_size - 1) // 2
     ux = ux[pad:-pad, pad:-pad].copy()
@@ -236,6 +239,7 @@ def structural_similarity_dict(
         "vy": vy,
         "C1": C1,
         "C2": C2,
+        "C3": C3,
     }
 
     # A1, A2, B1, B2 = (

@@ -22,9 +22,11 @@ def micro_MS_SSIM(
     gaussian_weights=False,
     ri_factor: Union[float, None] = None,
     return_ri_factor=False,
-    **ri_factor_kwargs,
+    **kwargs,
 ) -> Union[float, Tuple[float, float]]:
     if ri_factor is None:
+        ri_factor_kwargs= kwargs.get('ri_factor_kwargs', {})
+
         ssim_dict = structural_similarity_dict(
             target_img,
             pred_img,
@@ -39,8 +41,9 @@ def micro_MS_SSIM(
 
     gt_torch = torch.Tensor(target_img[None, None] * 1.0)
     pred_torch = torch.Tensor(pred_img[None, None] * 1.0)
+    ms_ssim_kwargs = kwargs.get('ms_ssim_kwargs', {})
     ms_ssim = MultiScaleStructuralSimilarityIndexMeasure(
-        data_range=data_range, gaussian_kernel=gaussian_weights, betas=betas
+        data_range=data_range, gaussian_kernel=gaussian_weights, betas=betas, **ms_ssim_kwargs
     )
 
     if return_ri_factor:
