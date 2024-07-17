@@ -4,6 +4,7 @@ Multi-scale Microscopy Structural Similarity Index (MS-MicroSSIM) implementation
 
 from typing import Tuple, Union
 
+# TODO can we remove dependency on torch?
 import torch
 from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
