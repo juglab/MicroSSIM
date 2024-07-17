@@ -1,3 +1,5 @@
+"""Range invariant structural similarity index."""
+
 from copy import copy
 from typing import Optional, Union
 
@@ -30,7 +32,6 @@ def _ssim_from_params_with_C3(
     Union[float, SSIM]
         The SSIM value or the individual components of the SSIM.
     """
-
     lum_num = 2 * alpha * ssim.ux * ssim.uy + ssim.C1
     lum_denom = ssim.ux**2 + (alpha**2) * ssim.uy**2 + ssim.C1
 
@@ -96,7 +97,8 @@ def _ssim_from_params(
 
     A1, A2, B1, B2 = (
         2 * alpha * ssim.ux * ssim.uy + ssim.C1,
-        2 * alpha * ssim.vxy + ssim.C2,
+        2 * alpha * ssim.vxy
+        + ssim.C2,  # TOOD here difference with _ssim_from_params_with_C3
         ssim.ux**2 + (alpha**2) * ssim.uy**2 + ssim.C1,
         ssim.vx + (alpha**2) * ssim.vy + ssim.C2,
     )
@@ -154,17 +156,43 @@ def get_ri_factor(ssim: SSIM) -> float:
     return res.x[0]
 
 
+# TODO is this important?
 def mse_based_range_invariant_structural_similarity(
-    target_img,
-    pred_img,
+    target_img: NDArray,
+    pred_img: NDArray,
     *,
-    win_size=None,
-    data_range=None,
-    channel_axis=None,
-    gaussian_weights=False,
-    return_individual_components=False,
+    win_size: Optional[int] = None,
+    data_range: Optional[float] = None,
+    channel_axis: Optional[int] = None,
+    gaussian_weights: bool = False,
+    return_individual_components: bool = False,
     **kwargs,
-):
+) -> Union[float, SSIM]:
+    """MSE based range-invariant structural similarity index.
+
+    Parameters
+    ----------
+    target_img : np.ndarray
+        The target image.
+    pred_img : np.ndarray
+        The predicted image.
+    win_size : int, optional
+        The side-length of the sliding window used in comparison. Must be an odd value.
+    data_range : float, optional
+        The data range of the input image.
+    channel_axis : int, optional
+        The axis of the image that corresponds to channels.
+    gaussian_weights : bool, optional
+        If True, each patch has its mean and variance spatially weighted by a normalized
+        Gaussian kernel of width sigma=1.5.
+    return_individual_components : bool, optional
+        If True, return the individual components of the SSIM value.
+
+    Returns
+    -------
+    float or SSIM
+        The MSE-based range-invariant structural similarity index.
+    """
     ri_factor = get_mse_based_factor(target_img[None], pred_img[None])
 
     return range_invariant_structural_similarity(
@@ -193,7 +221,7 @@ def range_invariant_structural_similarity(
     ri_factor: Optional[float] = None,
     return_individual_components: bool = False,
     **kwargs: dict,
-) -> float:
+) -> Union[float, SSIM]:
     """Compute the range-invariant structural similarity index between two images.
 
     # TODO check the definition of the parameters
@@ -228,7 +256,7 @@ def range_invariant_structural_similarity(
 
     Returns
     -------
-    float
+    float or SSIM
         The range-invariant structural similarity index.
     """
     ssim_elements = compute_ssim_elements(

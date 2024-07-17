@@ -68,7 +68,7 @@ def compute_ssim_elements(
     data_range: Optional[float] = None,
     channel_axis: Optional[int] = None,
     gaussian_weights: bool = False,
-    **kwargs: dict,
+    **kwargs: dict[str, float],
 ) -> SSIM:
     """
     Calculate the elemnts used for computing the SSIM.
@@ -128,7 +128,7 @@ def compute_ssim_elements(
             "Please set `channel_axis` to None."
         )
 
-    K1 = kwargs.pop("K1", 0.01)
+    K1 = kwargs.pop("K1", 0.01)  # TODO inherited from skimage, but might make explicit
     K2 = kwargs.pop("K2", 0.03)
     K3 = kwargs.pop("K3", None)
 
