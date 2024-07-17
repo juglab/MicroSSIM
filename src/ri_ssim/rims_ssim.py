@@ -8,11 +8,11 @@ from typing import Tuple, Union
 import torch
 from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
-from ._ssim_raw import structural_similarity_dict
 from .ri_ssim import get_ri_factor
+from .ssim import compute_ssim_elements
 
 
-def micro_MS_SSIM(
+def range_invariant_multiscale_structural_similarity(
     target_img,
     pred_img,
     *,
@@ -26,9 +26,9 @@ def micro_MS_SSIM(
     **kwargs,
 ) -> Union[float, Tuple[float, float]]:
     if ri_factor is None:
-        ri_factor_kwargs= kwargs.get('ri_factor_kwargs', {})
+        ri_factor_kwargs = kwargs.get("ri_factor_kwargs", {})
 
-        ssim_dict = structural_similarity_dict(
+        ssim_dict = compute_ssim_elements(
             target_img,
             pred_img,
             win_size=win_size,
@@ -42,9 +42,12 @@ def micro_MS_SSIM(
 
     gt_torch = torch.Tensor(target_img[None, None] * 1.0)
     pred_torch = torch.Tensor(pred_img[None, None] * 1.0)
-    ms_ssim_kwargs = kwargs.get('ms_ssim_kwargs', {})
+    ms_ssim_kwargs = kwargs.get("ms_ssim_kwargs", {})
     ms_ssim = MultiScaleStructuralSimilarityIndexMeasure(
-        data_range=data_range, gaussian_kernel=gaussian_weights, betas=betas, **ms_ssim_kwargs
+        data_range=data_range,
+        gaussian_kernel=gaussian_weights,
+        betas=betas,
+        **ms_ssim_kwargs,
     )
 
     if return_ri_factor:

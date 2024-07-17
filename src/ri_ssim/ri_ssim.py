@@ -1,169 +1,158 @@
-from typing import Dict, Union
+from copy import copy
+from typing import Optional, Union
 
 import numpy as np
+from numpy.typing import NDArray
 from scipy.optimize import minimize
 
 from ._mse_ri_factor import get_mse_based_factor
-from ._ssim_raw import structural_similarity_dict
-from tqdm import tqdm
+from .ssim import SSIM, compute_ssim_elements
 
-def _ssim_from_params_with_C3(alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False):
-    
-    lum_num = 2 * alpha * ux * uy + C1
-    lum_denom = ux**2 + (alpha**2) * uy**2 + C1
-    
-    contrast_num = 2 * alpha * np.sqrt(vx * vy) + C2
-    contrast_denom = vx + (alpha**2) * vy + C2
-    
-    structure_denom = alpha * np.sqrt(vx * vy) + C3
-    structure_num = alpha * vxy + C3
+
+def _ssim_from_params_with_C3(
+    alpha, ssim: SSIM, return_individual_components=False
+) -> Union[float, SSIM]:
+    """Compute SSIM with C3.
+
+    `ssim` is obtained from calling `compute_ssim_elements`.
+
+    Parameters
+    ----------
+    alpha : float
+        The range-invariant factor.
+    ssim : SSIM
+        The SSIM elements.
+    return_individual_components : bool, optional
+        If True, return the individual components of the SSIM value.
+
+    Returns
+    -------
+    Union[float, SSIM]
+        The SSIM value or the individual components of the SSIM.
+    """
+
+    lum_num = 2 * alpha * ssim.ux * ssim.uy + ssim.C1
+    lum_denom = ssim.ux**2 + (alpha**2) * ssim.uy**2 + ssim.C1
+
+    contrast_num = 2 * alpha * np.sqrt(ssim.vx * ssim.vy) + ssim.C2
+    contrast_denom = ssim.vx + (alpha**2) * ssim.vy + ssim.C2
+
+    structure_denom = alpha * np.sqrt(ssim.vx * ssim.vy) + ssim.C3
+    structure_num = alpha * ssim.vxy + ssim.C3
 
     num = lum_num * contrast_num * structure_num
     denom = lum_denom * contrast_denom * structure_denom
     S = num / denom
+
     if return_individual_components:
-        return {
-            "SSIM": S,
-            "luminance": lum_num / lum_denom,
-            "contrast": contrast_num / contrast_denom,
-            "structure": structure_num / structure_denom,
-            "alpha": alpha,
-            "ux": ux,
-            "uy": uy,
-            "vx": vx,
-            "vy": vy,
-            "vxy": vxy,
-            "C1": C1,
-            "C2": C2,
-            "C3": C3,
-        }
+        return SSIM(
+            SSIM=S,
+            luminance=lum_num / lum_denom,
+            contrast=contrast_num / contrast_denom,
+            structure=structure_num / structure_denom,
+            alpha=alpha,
+            ux=ssim.ux,
+            uy=ssim.uy,
+            vx=ssim.vx,
+            vy=ssim.vy,
+            vxy=ssim.vxy,
+            C1=ssim.C1,
+            C2=ssim.C2,
+            C3=ssim.C3,
+        )
+
     return np.mean(S)
 
 
 def _ssim_from_params(
-    alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False
-):
-    if C3 is not None:
-        return _ssim_from_params_with_C3(alpha, ux, uy, vx, vy, vxy, C1, C2, C3=C3, return_individual_components=return_individual_components)
+    alpha, ssim: SSIM, return_individual_components=False
+) -> Union[float, SSIM]:
+    """Compute SSIM without C3.
+
+    `ssim` is obtained from calling `compute_ssim_elements`, and its C3 parameter
+    should be None.
+
+    Parameters
+    ----------
+    alpha : float
+        The range-invariant factor.
+    ssim : SSIM
+        The SSIM elements.
+    return_individual_components : bool, optional
+        If True, return the individual components of the SSIM value.
+
+    Returns
+    -------
+    Union[float, SSIM]
+        The SSIM value or the individual components of the SSIM.
+
+    Raises
+    ------
+    ValueError
+        If `ssim.C3` is not None.
+    """
+    if ssim.C3 is not None:
+        return _ssim_from_params_with_C3(alpha, ssim, return_individual_components)
 
     A1, A2, B1, B2 = (
-        2 * alpha * ux * uy + C1,
-        2 * alpha * vxy + C2,
-        ux**2 + (alpha**2) * uy**2 + C1,
-        vx + (alpha**2) * vy + C2,
+        2 * alpha * ssim.ux * ssim.uy + ssim.C1,
+        2 * alpha * ssim.vxy + ssim.C2,
+        ssim.ux**2 + (alpha**2) * ssim.uy**2 + ssim.C1,
+        ssim.vx + (alpha**2) * ssim.vy + ssim.C2,
     )
     D = B1 * B2
     S = (A1 * A2) / D
 
     if return_individual_components:
-
-        term = 2 * alpha * np.sqrt(vx * vy) + C2
+        term = 2 * alpha * np.sqrt(ssim.vx * ssim.vy) + ssim.C2
         luminance = A1 / B1
         contrast = term / B2
         structure = A2 / term
-        return {
-            "SSIM": S,
-            "luminance": luminance,
-            "contrast": contrast,
-            "structure": structure,
-            "alpha": alpha,
-            "ux": ux,
-            "uy": uy,
-            "vx": vx,
-            "vy": vy,
-            "vxy": vxy,
-            "C1": C1,
-            "C2": C2,
-        }
+
+        return SSIM(
+            SSIM=S,
+            luminance=luminance,
+            contrast=contrast,
+            structure=structure,
+            alpha=alpha,
+            ux=ssim.ux,
+            uy=ssim.uy,
+            vx=ssim.vx,
+            vy=ssim.vy,
+            vxy=ssim.vxy,
+            C1=ssim.C1,
+            C2=ssim.C2,
+        )
 
     return np.mean(S)
 
 
-def get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
-    other_args = (
-        ssim_dict["ux"],
-        ssim_dict["uy"],
-        ssim_dict["vx"],
-        ssim_dict["vy"],
-        ssim_dict["vxy"],
-        ssim_dict["C1"],
-        ssim_dict["C2"],
-    )
-    initial_guess = np.array([1])
-    res = minimize(
-        lambda *args: -1 * _ssim_from_params(*args), initial_guess, args=other_args
-    )
-    return res.x[0]
+def get_ri_factor(ssim: SSIM) -> float:
+    """Compute the range-invariant factor for the RI-SSIM from the SSIM elements.
 
-def get_transformation_params(gt, pred, **ssim_kwargs):
-    ux_arr = []
-    uy_arr = []
-    vx_arr = []
-    vy_arr = []
-    vxy_arr = []
+    Parameters
+    ----------
+    ssim : SSIMElements
+        The SSIM elements, obtained from `ri_ssim.ssim.compute_ssim_elements`.
 
-    for idx in tqdm(range(len(gt))):
-        gt_tmp = gt[idx]
-        pred_tmp = pred[idx]
+    Returns
+    -------
+    float
+        The range-invariant factor.
+    """
 
-        ssim_dict = structural_similarity_dict(
-            gt_tmp,
-            pred_tmp,
-            data_range=gt_tmp.max() - gt_tmp.min(),
-            return_individual_components=True,
-            **ssim_kwargs,
-        )
-        ux, uy, vx, vy, vxy, C1, C2 = (
-            ssim_dict["ux"],
-            ssim_dict["uy"],
-            ssim_dict["vx"],
-            ssim_dict["vy"],
-            ssim_dict["vxy"],
-            ssim_dict["C1"],
-            ssim_dict["C2"],
-        )
-        ux_arr.append(ux)
-        uy_arr.append(uy)
-        vx_arr.append(vx)
-        vy_arr.append(vy)
-        vxy_arr.append(vxy)
-
-    ux = np.concatenate(ux_arr, axis=0)
-    uy = np.concatenate(uy_arr, axis=0)
-    vx = np.concatenate(vx_arr, axis=0)
-    vy = np.concatenate(vy_arr, axis=0)
-    vxy = np.concatenate(vxy_arr, axis=0)
-
-    other_args = (
-        ux,
-        uy,
-        vx,
-        vy,
-        vxy,
-        C1,
-        C2,
-    )
+    # create a copy of SSIM without C3
+    ssim_without_C3 = copy(ssim)
+    ssim_without_C3.C3 = None
 
     initial_guess = np.array([1])
+
     res = minimize(
-        lambda *args: -1 * _ssim_from_params(*args), initial_guess, args=other_args
+        lambda x: -1 * _ssim_from_params(x), initial_guess, args=ssim_without_C3
     )
+
     return res.x[0]
 
-    # initial_guess = np.array([1])
-    # res = minimize(
-    #     lambda *args: -1 * _contrast_sensitivity_from_params(*args),
-    #     initial_guess,
-    #     args=other_args,
-    # )
-    # alpha = res.x[0]
-    # initial_guess = np.array([0])
-    # new_args = (alpha,) + other_args
-    # res = minimize(
-    #     lambda *args: -1 * _luminance_from_params(*args), initial_guess, args=new_args
-    # )
-    # offset = res.x[0]
-    # return alpha, offset
 
 def mse_based_range_invariant_structural_similarity(
     target_img,
@@ -178,7 +167,7 @@ def mse_based_range_invariant_structural_similarity(
 ):
     ri_factor = get_mse_based_factor(target_img[None], pred_img[None])
 
-    return micro_SSIM(
+    return range_invariant_structural_similarity(
         target_img,
         pred_img,
         win_size=win_size,
@@ -191,19 +180,58 @@ def mse_based_range_invariant_structural_similarity(
     )
 
 
-def micro_SSIM(
-    target_img,
-    pred_img,
+def range_invariant_structural_similarity(
+    target_img: NDArray,
+    pred_img: NDArray,
     *,
-    win_size=None,
-    data_range=None,
-    channel_axis=None,
-    gaussian_weights=True,
-    ri_factor: Union[float, None] = None,
+    win_size: Optional[int] = None,
+    data_range: Optional[float] = None,
+    channel_axis: Optional[int] = None,
+    gaussian_weights: Optional[
+        bool
+    ] = True,  # TODO different default value than skimage
+    ri_factor: Optional[float] = None,
     return_individual_components: bool = False,
-    **kwargs,
-):
-    ssim_dict = structural_similarity_dict(
+    **kwargs: dict,
+) -> float:
+    """Compute the range-invariant structural similarity index between two images.
+
+    # TODO check the definition of the parameters
+    Parameters
+    ----------
+    target_img : numpy.ndarray
+        The target image.
+    pred_img : numpy.ndarray
+        The predicted image.
+    win_size : int, optional
+        The side-length of the sliding window used in comparison. Must be an odd value.
+        If gaussian_weights is True, this is ignored and the window size will depend on
+        sigma.
+    data_range : float, optional
+        The data range of the input image (difference between maximum and minimum
+        possible values). By default, this is estimated from the image data type. This
+        estimate may be wrong for floating-point image data. Therefore it is recommended
+        to always pass this scalar value explicitly.
+    channel_axis : int, optional
+        If None, the image is assumed to be a grayscale (single channel) image.
+        Otherwise, this parameter indicates which axis of the array corresponds to
+        channels.
+    gaussian_weights : bool, optional
+        If True, each patch has its mean and variance spatially weighted by a normalized
+        Gaussian kernel of width sigma=1.5.
+    ri_factor : float, optional
+        The range-invariant factor.
+    return_individual_components : bool, optional
+        If True, return the individual components of the SSIM value.
+    **kwargs : dict
+        Additional keyword arguments, passed to `skimage.metrics.structural_similarity`.
+
+    Returns
+    -------
+    float
+        The range-invariant structural similarity index.
+    """
+    ssim_elements = compute_ssim_elements(
         target_img,
         pred_img,
         win_size=win_size,
@@ -212,86 +240,9 @@ def micro_SSIM(
         gaussian_weights=gaussian_weights,
         **kwargs,
     )
+
+    # retrieve range invariant factor if not provided
     if ri_factor is None:
-        ri_factor = get_ri_factor(ssim_dict)
-    ux, uy, vx, vy, vxy, C1, C2, C3 = (
-        ssim_dict["ux"],
-        ssim_dict["uy"],
-        ssim_dict["vx"],
-        ssim_dict["vy"],
-        ssim_dict["vxy"],
-        ssim_dict["C1"],
-        ssim_dict["C2"],
-        ssim_dict["C3"],
-    )
+        ri_factor = get_ri_factor(ssim_elements)
 
-    return _ssim_from_params(
-        ri_factor,
-        ux,
-        uy,
-        vx,
-        vy,
-        vxy,
-        C1,
-        C2,
-        C3=C3,
-        return_individual_components=return_individual_components,
-    )
-
-
-def remove_background(x, pmin=3, dtype=np.float32):
-    mi = np.percentile(x, pmin, keepdims=True)
-    if dtype is not None:
-        x = x.astype(dtype, copy=False)
-        mi = dtype(mi) if np.isscalar(mi) else mi.astype(dtype, copy=False)
-        x = x - mi
-    return x
-
-
-# if __name__ == "__main__":
-#     import numpy as np
-#     from skimage.io import imread
-
-#     def load_tiff(path):
-#         """
-#         Returns a 4d numpy array: num_imgs*h*w*num_channels
-#         """
-#         data = imread(path, plugin="tifffile")
-#         return data
-
-#     img1 = load_tiff(
-#         "/group/jug/ashesh/data/paper_stats/Test_P64_G32_M50_Sk8/gt_D21.tif"
-#     )
-#     img2 = load_tiff(
-#         "/group/jug/ashesh/data/paper_stats/Test_P64_G32_M50_Sk8/pred_training_disentangle_2404_D21-M3-S0-L8_1.tif"
-#     )
-#     ch_idx = 0
-#     img_gt = img1[0, ..., ch_idx]
-#     img_pred = img2[0, ..., ch_idx]
-#     print(
-#         "SSIM",
-#         range_invariant_structural_similarity(
-#             img_gt,
-#             img_pred,
-#             data_range=img_gt.max() - img_gt.min(),
-#             ri_factor=1.0,
-#         ),
-#     )
-
-#     print(
-#         "RI-SSIM",
-#         range_invariant_structural_similarity(
-#             img_gt,
-#             img_pred,
-#             data_range=img_gt.max() - img_gt.min(),
-#         ),
-#     )
-
-#     print(
-#         "RI-SSIM using MSE based:",
-#         mse_based_range_invariant_structural_similarity(
-#             img_gt,
-#             img_pred,
-#             data_range=img_gt.max() - img_gt.min(),
-#         ),
-#     )
+    return _ssim_from_params(ri_factor, ssim_elements, return_individual_components)

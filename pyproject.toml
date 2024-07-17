@@ -46,6 +46,8 @@ dependencies = [
 # development dependencies and tooling
 dev = ["pre-commit", "pytest", "pytest-cov"]
 
+examples = ["jupyter"]
+
 [project.urls]
 homepage = "https://github.com/juglab/RI-SSIM"
 repository = "https://github.com/juglab/RI-SSIM"
