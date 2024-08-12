@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.metrics import structural_similarity as ssim
 
-from ri_ssim.ri_ssim import micro_SSIM
+from ri_ssim._micro_ssim_internal import micro_SSIM
 
 
 def test_microssim_same_as_skimage():

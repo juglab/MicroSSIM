@@ -1,6 +1,6 @@
 import numpy as np
 
-from ri_ssim._ri_ssim import get_transformation_params, micro_SSIM
+from ri_ssim._micro_ssim_internal import get_transformation_params, micro_SSIM
 
 
 class MicroSSIM:
