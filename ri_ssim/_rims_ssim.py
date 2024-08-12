@@ -7,8 +7,8 @@ from typing import Tuple, Union
 import torch
 from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
+from ._ri_ssim import get_ri_factor
 from ._ssim_raw import structural_similarity_dict
-from .ri_ssim import get_ri_factor
 
 
 def micro_MS_SSIM(

@@ -2,19 +2,21 @@ from typing import Dict, Union
 
 import numpy as np
 from scipy.optimize import minimize
+from tqdm import tqdm
 
 from ._mse_ri_factor import get_mse_based_factor
 from ._ssim_raw import structural_similarity_dict
-from tqdm import tqdm
 
-def _ssim_from_params_with_C3(alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False):
-    
+
+def _ssim_from_params_with_C3(
+    alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False
+):
     lum_num = 2 * alpha * ux * uy + C1
     lum_denom = ux**2 + (alpha**2) * uy**2 + C1
-    
+
     contrast_num = 2 * alpha * np.sqrt(vx * vy) + C2
     contrast_denom = vx + (alpha**2) * vy + C2
-    
+
     structure_denom = alpha * np.sqrt(vx * vy) + C3
     structure_num = alpha * vxy + C3
 
@@ -44,7 +46,18 @@ def _ssim_from_params(
     alpha, ux, uy, vx, vy, vxy, C1, C2, C3=None, return_individual_components=False
 ):
     if C3 is not None:
-        return _ssim_from_params_with_C3(alpha, ux, uy, vx, vy, vxy, C1, C2, C3=C3, return_individual_components=return_individual_components)
+        return _ssim_from_params_with_C3(
+            alpha,
+            ux,
+            uy,
+            vx,
+            vy,
+            vxy,
+            C1,
+            C2,
+            C3=C3,
+            return_individual_components=return_individual_components,
+        )
 
     A1, A2, B1, B2 = (
         2 * alpha * ux * uy + C1,
@@ -56,7 +69,6 @@ def _ssim_from_params(
     S = (A1 * A2) / D
 
     if return_individual_components:
-
         term = 2 * alpha * np.sqrt(vx * vy) + C2
         luminance = A1 / B1
         contrast = term / B2
@@ -94,6 +106,7 @@ def get_ri_factor(ssim_dict: Dict[str, np.ndarray]):
         lambda *args: -1 * _ssim_from_params(*args), initial_guess, args=other_args
     )
     return res.x[0]
+
 
 def get_transformation_params(gt, pred, **ssim_kwargs):
     ux_arr = []
@@ -164,6 +177,7 @@ def get_transformation_params(gt, pred, **ssim_kwargs):
     # )
     # offset = res.x[0]
     # return alpha, offset
+
 
 def mse_based_range_invariant_structural_similarity(
     target_img,

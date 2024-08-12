@@ -1,3 +1,4 @@
-from .ri_ssim import micro_SSIM
+from .micro_ms3im import MicroMS3IM
+from .micro_ssim import MicroSSIM
 
-__all__ = ["micro_SSIM"]
+__all__ = ["MicroSSIM", "MicroMS3IM"]
