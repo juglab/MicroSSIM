@@ -4,7 +4,6 @@ Structural similarity index code adapted from skimage.metrics.structural_similar
 
 import numpy as np
 from scipy.ndimage import uniform_filter
-
 from skimage._shared.filters import gaussian
 from skimage._shared.utils import _supported_float_type, check_shape_equality, warn
 from skimage.util.dtype import dtype_range
