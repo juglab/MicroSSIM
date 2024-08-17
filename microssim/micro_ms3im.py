@@ -2,8 +2,9 @@ from typing import Union
 
 import numpy as np
 import torch
-from ri_ssim.micro_ssim import MicroSSIM
 from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
+
+from microssim.micro_ssim import MicroSSIM
 
 
 class MicroMS3IM(MicroSSIM):
