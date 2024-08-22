@@ -22,7 +22,7 @@ class MicroMS3IM(MicroSSIM):
         if ms_ssim_kwargs is None:
             ms_ssim_kwargs = {}
 
-        if not self._fit_called:
+        if not self._initialized:
             raise ValueError(
                 "fit method was not called before score method. Expected behaviour is to call fit \
                   with ALL DATA and then call score(), with individual images.\

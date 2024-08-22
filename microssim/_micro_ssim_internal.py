@@ -135,17 +135,38 @@ def get_transformation_params(gt, pred, **ssim_kwargs):
             ssim_dict["C1"],
             ssim_dict["C2"],
         )
-        ux_arr.append(ux)
-        uy_arr.append(uy)
-        vx_arr.append(vx)
-        vy_arr.append(vy)
-        vxy_arr.append(vxy)
+        # reshape allows handling differently sized images.
+        ux_arr.append(
+            ux.reshape(
+                -1,
+            )
+        )
+        uy_arr.append(
+            uy.reshape(
+                -1,
+            )
+        )
+        vx_arr.append(
+            vx.reshape(
+                -1,
+            )
+        )
+        vy_arr.append(
+            vy.reshape(
+                -1,
+            )
+        )
+        vxy_arr.append(
+            vxy.reshape(
+                -1,
+            )
+        )
 
-    ux = np.concatenate(ux_arr, axis=0)
-    uy = np.concatenate(uy_arr, axis=0)
-    vx = np.concatenate(vx_arr, axis=0)
-    vy = np.concatenate(vy_arr, axis=0)
-    vxy = np.concatenate(vxy_arr, axis=0)
+    ux = np.concatenate(ux_arr)
+    uy = np.concatenate(uy_arr)
+    vx = np.concatenate(vx_arr)
+    vy = np.concatenate(vy_arr)
+    vxy = np.concatenate(vxy_arr)
 
     other_args = (
         ux,
