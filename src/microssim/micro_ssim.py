@@ -1,11 +1,16 @@
-from typing import Union, Optional
+from typing import Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
+from typing_extensions import Self
 
-from microssim._micro_ssim_internal import get_transformation_params
-from microssim.ssim import compute_ssim_elements, compute_ssim, SSIM
-from microssim._ri_factor import get_ri_factor
+from microssim.ri_factor.ri_factor import get_global_ri_factor, get_ri_factor
+from microssim.ssim import SSIM, compute_ssim, compute_ssim_elements
+
+# TODO add convenience function or example to show case the background percentile
+# TODO add docstring examples
+# TODO function micro_structural_similarity with the bg_factor and the calculation,
+# would be more handy
 
 
 def micro_structural_similarity(
@@ -60,7 +65,7 @@ def micro_structural_similarity(
         Algorithm parameter, K2 (small constant).
     sigma : float
         Standard deviation for the Gaussian when `gaussian_weights` is True.
-    
+
     Returns
     -------
     numpy.ndarray or SSIM
@@ -87,71 +92,138 @@ def micro_structural_similarity(
 
 
 class MicroSSIM:
+    """
+    A class to perform all preprocessing and MicroSSIM calculations.
+
+    Attributes
+    ----------
+    _bg_percentile : int
+        Percentile of the image considered as background.
+    _offset_pred : float
+        Estimate of background pixel intensity in the prediction image.
+    _offset_gt : float
+        Estimate of background pixel intensity in the ground truth image.
+    _max_val : float
+        Maximum value used in normalization.
+    _ri_factor : float
+        MicroSSIM scaling factor.
+    """
+
     def __init__(
-        self,
-        bkg_percentile=3,
-        offset_pred=None,
-        offset_gt=None,
-        max_val=None,
-        ri_factor=None,
+        self: Self,
+        bg_percentile: int = 3,
+        offset_pred: Optional[float] = None,
+        offset_gt: Optional[float] = None,
+        max_val: Optional[float] = None,
+        ri_factor: Optional[float] = None,
     ) -> None:
         """
-        Args:
-            bkg_percentile (int, optional): Percentile of the image to be used as background. Defaults to 3.
-            offset_pred (float, optional): An estimate of background pixel intensity for prediction. This will be subtracted from the prediction. When None, the bkg_percentile of the prediction will be used. Defaults to None.
-            offset_gt (float, optional): An estimate of background pixel intensity for groundtruth. This will be subtracted from the ground truth. When None, the bkg_percentile of the ground truth will be used. Defaults to None.
-            max_val (float, optional): Maximum value, used in normalization. Defaults to None.
-            ri_factor (float, optional): Factor to be multiplied with the prediction. This is estimated from the data if not provided. Defaults to None.
+        Constructor.
 
-        # Example:
-            ssim = MicroSSIM()
-            ssim.fit(gt_all, pred_all)
-            print(ssim.score(gt, pred))
+        If no offsets are provided, the `bg_percentile` of the image will be used as the
+        to estimate background.
+
+        If `ri_factor` is provided, the other parameters (except the background
+        percentile) must be provided as well.
+
+        Parameters
+        ----------
+        bg_percentile : int, default=3
+            Percentile of the image considered as background.
+        offset_pred : float, optional
+            Estimate of background pixel intensity in the prediction image.
+        offset_gt : float, optional
+            Estimate of background pixel intensity in the ground truth image.
+        max_val : float, optional
+            Maximum value used in normalization.
+        ri_factor : float, optional
+            MicroSSIM scaling factor.
+
+        Raises
+        ------
+        ValueError
+            If `ri_factor` is provided, but not the other parameters.
         """
-        self._bkg_percentile = bkg_percentile
+        self._bg_percentile = bg_percentile
         self._offset_pred = offset_pred
         self._offset_gt = offset_gt
         self._max_val = max_val
         self._ri_factor = ri_factor
         self._initialized = self._ri_factor is not None
-        if self._initialized:
-            assert (
-                self._offset_gt is not None
-                and self._offset_pred is not None
-                and self._max_val is not None
-            ), "If ri_factor is provided, offset_pred, offset_gt and max_val must be provided as well."
 
-    def get_init_params_dict(self):
+        if self._initialized:
+            if (
+                self._offset_gt is None
+                or self._offset_pred is None
+                or self._max_val is None
+            ):
+                raise ValueError(
+                    "Please specify offset_pred, offset_gt and max_val if ri_factor is "
+                    "provided."
+                )
+
+    def get_parameters_as_dict(self: Self) -> dict[str, float]:
         """
-        Returns the initialization parameters of the measure. This can be used to save the model and
-        reload it later or to initialize other SSIM variants with the same parameters.
+        Return the attributes of the class as a dictionary.
+
+        Returns
+        -------
+        dictionary of {str: float}
+            Dictionary containing the attributes of the class.
         """
-        assert self._initialized is True, "model is not initialized."
+        if not self._initialized:
+            raise ValueError(
+                "MicroSSIM has not been initialized, please call the `fit` method "
+                "first."
+            )
+
         return {
-            "bkg_percentile": self._bkg_percentile,
+            "bg_percentile": self._bg_percentile,
             "offset_pred": self._offset_pred,
             "offset_gt": self._offset_gt,
             "max_val": self._max_val,
             "ri_factor": self._ri_factor,
         }
 
-    def _set_hparams(self, gt: np.ndarray, pred: np.ndarray):
+    def _compute_parameters(self, gt: NDArray, pred: NDArray) -> None:
+        """
+        Compute the MicroSSIM attributes that are missing.
+
+        Parameters
+        ----------
+        gt : numpy.ndarray
+            Reference image array.
+        pred : numpy.ndarray
+            Image array to compare to the reference.
+        """
         if self._offset_gt is None:
-            self._offset_gt = np.percentile(gt, self._bkg_percentile, keepdims=False)
+            self._offset_gt = np.percentile(gt, self._bg_percentile, keepdims=False)
 
         if self._offset_pred is None:
-            self._offset_pred = np.percentile(
-                pred, self._bkg_percentile, keepdims=False
-            )
+            self._offset_pred = np.percentile(pred, self._bg_percentile, keepdims=False)
 
         if self._max_val is None:
             self._max_val = (gt - self._offset_gt).max()
 
-    def fit(self, gt: np.ndarray, pred: np.ndarray):
+    def fit(
+        self: Self,
+        gt: Union[list[NDArray], NDArray],
+        pred: Union[list[NDArray], NDArray],
+    ) -> None:
+        """
+        Fit
+
+        Parameters
+        ----------
+        gt : np.ndarray
+            _description_
+        pred : np.ndarray
+            _description_
+        """
         assert self._initialized is False, "fit method can be called only once."
 
         if isinstance(gt, np.ndarray):
-            self._set_hparams(gt, pred)
+            self._compute_parameters(gt, pred)
 
         elif isinstance(gt, list):
             gt_squished = np.concatenate(
@@ -170,7 +242,7 @@ class MicroSSIM:
                     for x in pred
                 ]
             )
-            self._set_hparams(gt_squished, pred_squished)
+            self._compute_parameters(gt_squished, pred_squished)
 
         self._fit(gt, pred)
         self._initialized = True
@@ -192,7 +264,7 @@ class MicroSSIM:
     def _fit(self, gt: np.ndarray, pred: np.ndarray):
         gt_norm = self.normalize_gt(gt)
         pred_norm = self.normalize_prediction(pred)
-        self._ri_factor = get_transformation_params(gt_norm, pred_norm)
+        self._ri_factor = get_global_ri_factor(gt_norm, pred_norm)
 
     def score(
         self,
