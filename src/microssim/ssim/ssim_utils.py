@@ -5,7 +5,8 @@ See https://github.com/scikit-image/scikit-image.
 """
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
+from typing_extensions import Self
 
 import numpy as np
 from numpy.typing import NDArray
@@ -19,7 +20,7 @@ from skimage.util.arraycrop import crop
 @dataclass
 class SSIMElements:
     """Dataclass holding the various values necessary for the computation of the
-    SSIM."""
+    SSIM metrics."""
 
     ux: NDArray
     """Weighted mean of the first image."""
@@ -44,6 +45,18 @@ class SSIMElements:
 
     C3: Optional[float] = None
     """Algorithm parameter, C3."""
+
+    def get_args_tuple(self: Self) -> tuple[Union[NDArray, float], ...]:
+        """Return the elements as a list.
+        
+        Note that this excludes C3, which is usually unused.
+        
+        Returns
+        -------
+        list of numpy.ndarray or float
+            List of the elements.
+        """
+        return [self.ux, self.uy, self.vxy, self.vx, self.vy, self.C1, self.C2]
 
 
 @dataclass
@@ -70,8 +83,8 @@ class SSIM:
 
 
 def compute_ssim_elements(
-    img_x: NDArray,
-    img_y: NDArray,
+    image1: NDArray,
+    image2: NDArray,
     *,
     win_size: Optional[int] = None,
     data_range: Optional[float] = None,
@@ -87,9 +100,9 @@ def compute_ssim_elements(
 
     Parameters
     ----------
-    img_x : numpy.ndarray
+    image1 : numpy.ndarray
         First image being compared.
-    img_y : numpy.ndarray
+    image2 : numpy.ndarray
         Second image being compared.
     win_size : int or None, optional
         The side-length of the sliding window used in comparison. Must be an
@@ -123,11 +136,11 @@ def compute_ssim_elements(
 
     Returns
     -------
-    SSIMElements dataclass
+    SSIMElements
         The elements used for computing the SSIM (means, variances, covariaces, etc.).
     """
-    check_shape_equality(img_x, img_y)
-    float_type = _supported_float_type(img_x.dtype)
+    check_shape_equality(image1, image2)
+    float_type = _supported_float_type(image1.dtype)
 
     if channel_axis is not None:
         raise NotImplementedError(
@@ -161,7 +174,7 @@ def compute_ssim_elements(
         else:
             win_size = 7  # backwards compatibility
 
-    if np.any((np.asarray(img_x.shape) - win_size) < 0):
+    if np.any((np.asarray(image1.shape) - win_size) < 0):
         raise ValueError(
             "win_size exceeds image extent. "
             "Either ensure that your images are "
@@ -177,8 +190,8 @@ def compute_ssim_elements(
         raise ValueError("Window size must be odd.")
 
     if data_range is None:
-        if np.issubdtype(img_x.dtype, np.floating) or np.issubdtype(
-            img_y.dtype, np.floating
+        if np.issubdtype(image1.dtype, np.floating) or np.issubdtype(
+            image2.dtype, np.floating
         ):
             raise ValueError(
                 "Since image dtype is floating point, you must specify "
@@ -186,15 +199,15 @@ def compute_ssim_elements(
                 "carefully (including the note). It is recommended that "
                 "you always specify the data_range anyway."
             )
-        if img_x.dtype != img_y.dtype:
+        if image1.dtype != image2.dtype:
             warn(
                 "Inputs have mismatched dtypes. Setting data_range "
                 "based on img_x.dtype.",
                 stacklevel=2,
             )
-        dmin, dmax = dtype_range[img_x.dtype.type]
+        dmin, dmax = dtype_range[image1.dtype.type]
         data_range = dmax - dmin
-        if np.issubdtype(img_x.dtype, np.integer) and (img_x.dtype != np.uint8):
+        if np.issubdtype(image1.dtype, np.integer) and (image1.dtype != np.uint8):
             warn(
                 "Setting data_range based on img_x.dtype. "
                 + f"data_range = {data_range:.0f}. "
@@ -202,7 +215,7 @@ def compute_ssim_elements(
                 stacklevel=2,
             )
 
-    ndim = img_x.ndim
+    ndim = image1.ndim
 
     if gaussian_weights:
         filter_func = gaussian
@@ -212,8 +225,8 @@ def compute_ssim_elements(
         filter_args = {"size": win_size}
 
     # ndimage filters need floating point data
-    img_x = img_x.astype(float_type, copy=False)
-    img_y = img_y.astype(float_type, copy=False)
+    image1 = image1.astype(float_type, copy=False)
+    image2 = image2.astype(float_type, copy=False)
 
     NP = win_size**ndim
 
@@ -224,13 +237,13 @@ def compute_ssim_elements(
         cov_norm = 1.0  # population covariance to match Wang et. al. 2004
 
     # compute (weighted) means
-    ux = filter_func(img_x, **filter_args)
-    uy = filter_func(img_y, **filter_args)
+    ux = filter_func(image1, **filter_args)
+    uy = filter_func(image2, **filter_args)
 
     # compute (weighted) variances and covariances
-    uxx = filter_func(img_x * img_x, **filter_args)
-    uyy = filter_func(img_y * img_y, **filter_args)
-    uxy = filter_func(img_x * img_y, **filter_args)
+    uxx = filter_func(image1 * image1, **filter_args)
+    uyy = filter_func(image2 * image2, **filter_args)
+    uxy = filter_func(image1 * image2, **filter_args)
     vx = cov_norm * (uxx - ux * ux)
     vy = cov_norm * (uyy - uy * uy)
     vxy = cov_norm * (uxy - ux * uy)
@@ -262,8 +275,8 @@ def compute_ssim_elements(
 
 
 def _ssim(
+        alpha: float,
         elements: SSIMElements,
-        alpha: float = 1.,
 ) -> SSIM:
     """Compute SSIM from its elements as done in scikit-image.
 
@@ -272,10 +285,10 @@ def _ssim(
 
     Parameters
     ----------
-    elements : SSIMElements
-        Elements used for computing the SSIM (means, stds, cov etc.)
     alpha : float
         MicroSSIM scaling parameter.
+    elements : SSIMElements
+        Elements used for computing the SSIM (means, stds, cov etc.)
 
     Returns
     -------
@@ -310,8 +323,8 @@ def _ssim(
 
 
 def _ssim_with_c3(
+        alpha : float,
         elements: SSIMElements,
-        alpha : float = 1.,
 ) -> SSIM:
     """Compute SSIM from its elements without C3.
 
@@ -320,10 +333,10 @@ def _ssim_with_c3(
 
     Parameters
     ----------
-    elements : SSIMElements
-        Elements used for computing the SSIM (means, stds, covars etc.).
     alpha : float
         MicroSSIM scaling parameter.
+    elements : SSIMElements
+        Elements used for computing the SSIM (means, stds, covars etc.).
 
     Returns
     -------
@@ -361,10 +374,11 @@ def compute_ssim(
         elements: SSIMElements,        
         *,
         alpha: float = 1.,
-        win_size=None,
-        gaussian_weights=False,
+        win_size: Optional[int] = None,
+        gaussian_weights: bool = False,
+        individual_components: bool = False,
         **kwargs,
-    ) -> NDArray:
+    ) -> Union[NDArray, SSIM]:
     """Compute SSIM from its elements.
 
     Code adapted from `skimage.metrics.structural_similarity` under BSD-3-Clause
@@ -380,9 +394,11 @@ def compute_ssim(
         The side-length of the sliding window used in comparison. Must be an
         odd value. If `gaussian_weights` is True, this is ignored and the
         window size will depend on `sigma`.
-    gaussian_weights : bool, optional
+    gaussian_weights : bool, default = False
         If True, each patch has its mean and variance spatially weighted by a
         normalized Gaussian kernel of width sigma=1.5.
+    individual_components : bool, default = False
+        If True, return the individual SSIM components.
 
     Other Parameters
     ----------------
@@ -395,7 +411,7 @@ def compute_ssim(
 
     Returns
     -------
-    numpy.ndarray
+    numpy.ndarray or SSIM
         SSIM value.
     """
     sigma = kwargs.pop("sigma", 1.5)
@@ -416,14 +432,18 @@ def compute_ssim(
 
     # compute SSIM
     if elements.C3 is None:
-        ssim = _ssim(elements, alpha=alpha)
+        ssim = _ssim(alpha=alpha, elements=elements)
     else:
-        ssim = _ssim_with_c3(elements, alpha=alpha)
+        ssim = _ssim_with_c3(alpha=alpha, elements=elements)
 
     # to avoid edge effects will ignore filter radius strip around edges
     pad = (win_size - 1) // 2
 
     # compute (weighted) mean of ssim. Use float64 for accuracy.
-    mean_ssim = crop(ssim.SSIM, pad).mean(dtype=np.float64)
+    ssim.SSIM = crop(ssim.SSIM, pad)
+    mean_ssim = ssim.SSIM.mean(dtype=np.float64)
 
-    return mean_ssim
+    if individual_components:
+        return mean_ssim, ssim
+    else:
+        return mean_ssim

@@ -40,10 +40,10 @@ def test_ssim_w_and_wo_standard_c3():
     assert ssim_elements.C3 is None
 
     # Compute SSIM with C3=C2/2 and without C3
-    ssim_without_c3 = _ssim(ssim_elements)
+    ssim_without_c3 = _ssim(alpha=1.0, elements=ssim_elements)
 
     ssim_elements.C3 = ssim_elements.C2 / 2
-    ssim_with_c3 = _ssim_with_c3(ssim_elements)
+    ssim_with_c3 = _ssim_with_c3(alpha=1.0, elements=ssim_elements)
 
     assert np.allclose(ssim_without_c3.SSIM, ssim_with_c3.SSIM)
 
@@ -60,10 +60,10 @@ def test_ssim_w_and_wo_c3():
     assert ssim_elements.C3 is None
 
     # Compute SSIM with C3=C2/2 and without C3
-    ssim_without_c3 = _ssim(ssim_elements)
+    ssim_without_c3 = _ssim(alpha=1.0, elements=ssim_elements)
 
     ssim_elements.C3 = ssim_elements.C2 * 2
-    ssim_with_c3 = _ssim_with_c3(ssim_elements)
+    ssim_with_c3 = _ssim_with_c3(alpha=1.0, elements=ssim_elements)
 
     assert not np.allclose(ssim_without_c3.SSIM, ssim_with_c3.SSIM)
 
@@ -78,8 +78,8 @@ def test_alpha_changes_result():
     # Compute the SSIM using MicroSSIM
     ssim_elements = compute_ssim_elements(img1, img2, data_range=255)
 
-    ssim = compute_ssim(ssim_elements)
-    ssim_alpha = compute_ssim(ssim_elements, alpha=0.5)
+    ssim = compute_ssim(alpha=1.0, elements=ssim_elements)
+    ssim_alpha = compute_ssim(alpha=.5, elements=ssim_elements)
 
     # Check that the two SSIM values are not equal
     assert not np.isclose(ssim, ssim_alpha)
@@ -87,8 +87,8 @@ def test_alpha_changes_result():
     # Same when specifying C3
     ssim_elements.C3 = ssim_elements.C2 * 2
     
-    ssim = compute_ssim(ssim_elements)
-    ssim_alpha = compute_ssim(ssim_elements, alpha=0.5)
+    ssim = compute_ssim(alpha=1.0, elements=ssim_elements)
+    ssim_alpha = compute_ssim(alpha=.5, elements=ssim_elements)
 
     # Check that the two SSIM values are not equal
     assert not np.isclose(ssim, ssim_alpha)
