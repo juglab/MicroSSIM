@@ -1,8 +1,89 @@
-from typing import List, Union
+from typing import Union, Optional
 
 import numpy as np
+from numpy.typing import NDArray
 
-from microssim._micro_ssim_internal import get_transformation_params, micro_SSIM
+from microssim._micro_ssim_internal import get_transformation_params
+from microssim.ssim import compute_ssim_elements, compute_ssim, SSIM
+from microssim._ri_factor import get_ri_factor
+
+
+def micro_structural_similarity(
+    image1,
+    image2,
+    *,
+    win_size=None,
+    data_range=None,
+    channel_axis=None,
+    gaussian_weights=True,
+    ri_factor: Optional[float] = None,
+    individual_components: bool = False,
+    **kwargs,
+) -> Union[NDArray, SSIM]:
+    """
+    Compute the MicroSSIM metrics.
+
+    Parameters
+    ----------
+    image1 : numpy.ndarray
+        First image being compared.
+    image2 : numpy.ndarray
+        Second image being compared.
+    win_size : int or None, optional
+        The side-length of the sliding window used in comparison. Must be an
+        odd value. If `gaussian_weights` is True, this is ignored and the
+        window size will depend on `sigma`.
+    data_range : float, optional
+        The data range of the input image (difference between maximum and
+        minimum possible values). By default, this is estimated from the image
+        data type. This estimate may be wrong for floating-point image data.
+        Therefore it is recommended to always pass this scalar value explicitly
+        (see note below).
+    channel_axis : int or None, optional
+        If None, the image is assumed to be a grayscale (single channel) image.
+        Otherwise, this parameter indicates which axis of the array corresponds
+        to channels.
+    gaussian_weights : bool, optional
+        If True, each patch has its mean and variance spatially weighted by a
+        normalized Gaussian kernel of width sigma=1.5.
+    individual_components : bool, default = False
+        If True, return the individual SSIM components.
+
+    Other Parameters
+    ----------------
+    use_sample_covariance : bool
+        If True, normalize covariances by N-1 rather than, N where N is the
+        number of pixels within the sliding window.
+    K1 : float
+        Algorithm parameter, K1 (small constant).
+    K2 : float
+        Algorithm parameter, K2 (small constant).
+    sigma : float
+        Standard deviation for the Gaussian when `gaussian_weights` is True.
+    
+    Returns
+    -------
+    numpy.ndarray or SSIM
+        SSIM value.
+    """
+    elements = compute_ssim_elements(
+        image1,
+        image2,
+        win_size=win_size,
+        data_range=data_range,
+        channel_axis=channel_axis,
+        gaussian_weights=gaussian_weights,
+        **kwargs,
+    )
+
+    if ri_factor is None:
+        ri_factor = get_ri_factor(elements)
+
+    return compute_ssim(
+        elements,
+        alpha=ri_factor,
+        individual_components=individual_components,
+    )
 
 
 class MicroSSIM:
@@ -94,14 +175,14 @@ class MicroSSIM:
         self._fit(gt, pred)
         self._initialized = True
 
-    def normalize_prediction(self, pred: Union[List[np.ndarray], np.ndarray]):
+    def normalize_prediction(self, pred: Union[list[np.ndarray], np.ndarray]):
         if isinstance(pred, list):
             assert isinstance(pred[0], np.ndarray), "List must contain numpy arrays."
             return [self.normalize_prediction(x) for x in pred]
 
         return (pred - self._offset_pred) / self._max_val
 
-    def normalize_gt(self, gt: Union[List[np.ndarray], np.ndarray]):
+    def normalize_gt(self, gt: Union[list[np.ndarray], np.ndarray]):
         if isinstance(gt, list):
             assert isinstance(gt[0], np.ndarray), "List must contain numpy arrays."
             return [self.normalize_gt(x) for x in gt]
@@ -132,7 +213,7 @@ class MicroSSIM:
 
         gt_norm = self.normalize_gt(gt)
         pred_norm = self.normalize_prediction(pred)
-        return micro_SSIM(
+        return micro_structural_similarity(
             gt_norm,
             pred_norm,
             ri_factor=self._ri_factor,
