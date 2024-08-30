@@ -36,7 +36,14 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Typing :: Typed",
 ]
-dependencies = ["numpy", "scipy", "scikit-image"]
+dependencies = [
+    "numpy",
+    "scipy",
+    "scikit-image",
+    "torch",
+    "torchmetrics",
+    "tqdm",
+]
 
 [project.optional-dependencies]
 # development dependencies and tooling

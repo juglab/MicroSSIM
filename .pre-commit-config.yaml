@@ -28,6 +28,7 @@ repos:
         files: "^src/ri_ssim/.*\\.py$"
         additional_dependencies:
           - numpy
+          - types-tqdm
 
   # check docstrings
   - repo: https://github.com/numpy/numpydoc
