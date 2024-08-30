@@ -3,5 +3,6 @@
 from .ssim_utils import (
     compute_ssim_elements, 
     compute_ssim,
-    SSIMElements
+    SSIMElements,
+    SSIM
 )
