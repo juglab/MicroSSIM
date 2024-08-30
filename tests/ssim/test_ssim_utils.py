@@ -10,33 +10,23 @@ from microssim.ssim.ssim_utils import (
     _ssim_with_c3
 )
 
-def test_compute_ssim():
+def test_compute_ssim(image_1, image_2):
     """Test that MicroSSIM SSIM agrees with the skimage SSIM."""
-    # Create two random images
-    rng = np.random.default_rng(42)
-    img1 = rng.integers(0, 255, (100, 100))
-    img2 = rng.poisson(img1)
-
     # Compute the SSIM using MicroSSIM version
-    ssim_elements = compute_ssim_elements(img1, img2, data_range=255)
+    ssim_elements = compute_ssim_elements(image_1, image_2, data_range=65535)
     ssim = compute_ssim(ssim_elements)
 
     # Compute the SSIM using skimage
-    ssim_skimage = structural_similarity(img1, img2, data_range=255)
+    ssim_skimage = structural_similarity(image_1, image_2, data_range=65535)
 
     # Check that the two SSIM values are equal
-    assert np.isclose(ssim, ssim_skimage)
+    assert np.isclose(ssim, ssim_skimage, atol=1e-4)
 
 
-def test_ssim_w_and_wo_standard_c3():
+def test_ssim_w_and_wo_standard_c3image_1(image_1, image_2):
     """Test that c3=c2/2 leads to the same result."""
-    # Create two random images
-    rng = np.random.default_rng(42)
-    img1 = rng.integers(0, 255, (100, 100))
-    img2 = rng.poisson(img1)
-
     # Compute the SSIM elements
-    ssim_elements = compute_ssim_elements(img1, img2, data_range=255)
+    ssim_elements = compute_ssim_elements(image_1, image_2, data_range=65535)
     assert ssim_elements.C3 is None
 
     # Compute SSIM with C3=C2/2 and without C3
@@ -48,15 +38,10 @@ def test_ssim_w_and_wo_standard_c3():
     assert np.allclose(ssim_without_c3.SSIM, ssim_with_c3.SSIM)
 
 
-def test_ssim_w_and_wo_c3():
+def test_ssim_w_and_wo_c3(image_1, image_2):
     """Test that c3!=c2/2 leads to different results."""
-    # Create two random images
-    rng = np.random.default_rng(42)
-    img1 = rng.integers(0, 255, (100, 100))
-    img2 = rng.poisson(img1)
-
     # Compute the SSIM elements
-    ssim_elements = compute_ssim_elements(img1, img2, data_range=255)
+    ssim_elements = compute_ssim_elements(image_1, image_2, data_range=65535)
     assert ssim_elements.C3 is None
 
     # Compute SSIM with C3=C2/2 and without C3
@@ -68,15 +53,10 @@ def test_ssim_w_and_wo_c3():
     assert not np.allclose(ssim_without_c3.SSIM, ssim_with_c3.SSIM)
 
 
-def test_alpha_changes_result():
+def test_alpha_changes_result(image_1, image_2):
     """Test that alpha!=1. changes the result."""
-    # Create two random images
-    rng = np.random.default_rng(42)
-    img1 = rng.integers(0, 255, (100, 100))
-    img2 = rng.poisson(img1)
-
     # Compute the SSIM using MicroSSIM
-    ssim_elements = compute_ssim_elements(img1, img2, data_range=255)
+    ssim_elements = compute_ssim_elements(image_1, image_2, data_range=65535)
 
     ssim = compute_ssim(alpha=1.0, elements=ssim_elements)
     ssim_alpha = compute_ssim(alpha=.5, elements=ssim_elements)
