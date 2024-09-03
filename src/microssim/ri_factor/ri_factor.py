@@ -2,6 +2,7 @@
 MicroSSIM."""
 
 from typing import Union
+
 import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import minimize
@@ -146,7 +147,7 @@ def get_global_ri_factor(
     Raises
     ------
     ValueError
-        If the ground-truth and prediction arrays have different types, lengths or 
+        If the ground-truth and prediction arrays have different types, lengths or
         shapes.
     """
     if type(gt) != type(pred):
@@ -154,14 +155,14 @@ def get_global_ri_factor(
             f"Ground-truth and prediction arrays must have the same type "
             f"(got {type(gt)} and {type(pred)}, respectively)."
         )
-    
+
     if isinstance(gt, list):
         if len(gt) != len(pred):
             raise ValueError(
                 f"Ground-truth and prediction lists must have the same length "
                 f"(got {len(gt)} and {len(pred)}, respectively)."
             )
-    else: 
+    else:
         if gt.shape != pred.shape:
             raise ValueError(
                 f"Ground-truth and prediction arrays must have the same "

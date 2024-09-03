@@ -6,15 +6,15 @@ See https://github.com/scikit-image/scikit-image.
 
 from dataclasses import dataclass
 from typing import Optional, Union
-from typing_extensions import Self
 
 import numpy as np
 from numpy.typing import NDArray
 from scipy.ndimage import uniform_filter
 from skimage._shared.filters import gaussian
 from skimage._shared.utils import _supported_float_type, check_shape_equality, warn
-from skimage.util.dtype import dtype_range
 from skimage.util.arraycrop import crop
+from skimage.util.dtype import dtype_range
+from typing_extensions import Self
 
 
 @dataclass
@@ -48,9 +48,9 @@ class SSIMElements:
 
     def get_args_tuple(self: Self) -> tuple[Union[NDArray, float], ...]:
         """Return the elements as a list.
-        
+
         Note that this excludes C3, which is usually unused.
-        
+
         Returns
         -------
         list of numpy.ndarray or float
@@ -275,8 +275,8 @@ def compute_ssim_elements(
 
 
 def _ssim(
-        alpha: float,
-        elements: SSIMElements,
+    alpha: float,
+    elements: SSIMElements,
 ) -> SSIM:
     """Compute SSIM from its elements as done in scikit-image.
 
@@ -323,8 +323,8 @@ def _ssim(
 
 
 def _ssim_with_c3(
-        alpha : float,
-        elements: SSIMElements,
+    alpha: float,
+    elements: SSIMElements,
 ) -> SSIM:
     """Compute SSIM from its elements without C3.
 
@@ -344,10 +344,8 @@ def _ssim_with_c3(
         SSIM object.
     """
     if elements.C3 is None:
-        raise ValueError(
-            "C3 cannot be None in the SSIM elements, use `_ssim` instead."
-        )
-    
+        raise ValueError("C3 cannot be None in the SSIM elements, use `_ssim` instead.")
+
     lum_num = 2 * alpha * elements.ux * elements.uy + elements.C1
     lum_denom = elements.ux**2 + (alpha**2) * elements.uy**2 + elements.C1
 
@@ -370,16 +368,17 @@ def _ssim_with_c3(
         elements=elements,
     )
 
+
 # TODO return just SSIM with return_individual_components=True
 def compute_ssim(
-        elements: SSIMElements,        
-        *,
-        alpha: float = 1.,
-        win_size: Optional[int] = None,
-        gaussian_weights: bool = False,
-        return_individual_components: bool = False,
-        **kwargs,
-    ) -> Union[NDArray, tuple[NDArray, SSIM]]:
+    elements: SSIMElements,
+    *,
+    alpha: float = 1.0,
+    win_size: Optional[int] = None,
+    gaussian_weights: bool = False,
+    return_individual_components: bool = False,
+    **kwargs,
+) -> Union[NDArray, tuple[NDArray, SSIM]]:
     """Compute SSIM from its elements.
 
     Code adapted from `skimage.metrics.structural_similarity` under BSD-3-Clause
@@ -441,7 +440,7 @@ def compute_ssim(
     pad = (win_size - 1) // 2
 
     # compute (weighted) mean of ssim. Use float64 for accuracy.
-    #ssim.SSIM = crop(ssim.SSIM, pad)
+    # ssim.SSIM = crop(ssim.SSIM, pad)
     mean_ssim = ssim.SSIM.mean(dtype=np.float64)
 
     if return_individual_components:

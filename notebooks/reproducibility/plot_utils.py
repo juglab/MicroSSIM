@@ -1,20 +1,30 @@
-
+import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-import matplotlib.pyplot as plt
 
 
-def add_text(ax, text, img_shape, place='TOP_LEFT', edgecolor='black'):
+def add_text(ax, text, img_shape, place="TOP_LEFT", edgecolor="black"):
     """
     Adding text on image
     """
-    assert place in ['TOP_LEFT', 'BOTTOM_RIGHT']
-    if place == 'TOP_LEFT':
-        ax.text(img_shape[1] * 15 / 500, img_shape[0] * 55 / 500, text, bbox=dict(facecolor='white', edgecolor=edgecolor, alpha=0.9))
-    elif place == 'BOTTOM_RIGHT':
+    assert place in ["TOP_LEFT", "BOTTOM_RIGHT"]
+    if place == "TOP_LEFT":
+        ax.text(
+            img_shape[1] * 15 / 500,
+            img_shape[0] * 55 / 500,
+            text,
+            bbox=dict(facecolor="white", edgecolor=edgecolor, alpha=0.9),
+        )
+    elif place == "BOTTOM_RIGHT":
         s0 = img_shape[1]
         s1 = img_shape[0]
-        ax.text(s0 - s0 * 150 / 500, s1 - s1 * 35 / 500, text, bbox=dict(facecolor='white', edgecolor=edgecolor, alpha=0.9))
+        ax.text(
+            s0 - s0 * 150 / 500,
+            s1 - s1 * 35 / 500,
+            text,
+            bbox=dict(facecolor="white", edgecolor=edgecolor, alpha=0.9),
+        )
+
 
 def clean_ax(ax):
     # 2D or 1D axes are of type np.ndarray
@@ -28,7 +38,9 @@ def clean_ax(ax):
     ax.tick_params(left=False, right=False, top=False, bottom=False)
 
 
-def add_subplot_axes(ax, rect: list[float], facecolor: str = 'w', min_labelsize: int = 5):
+def add_subplot_axes(
+    ax, rect: list[float], facecolor: str = "w", min_labelsize: int = 5
+):
     """
     Add an axes inside an axes. This can be used to create an inset plot.
     Adapted from https://stackoverflow.com/questions/17458580/embedding-small-plots-inside-subplots-in-matplotlib
@@ -59,23 +71,25 @@ def add_subplot_axes(ax, rect: list[float], facecolor: str = 'w', min_labelsize:
     subax = fig.add_axes([x, y, width, height], facecolor=facecolor)
     x_labelsize = subax.get_xticklabels()[0].get_size()
     y_labelsize = subax.get_yticklabels()[0].get_size()
-    x_labelsize *= rect[2]**0.5
-    y_labelsize *= rect[3]**0.5
+    x_labelsize *= rect[2] ** 0.5
+    y_labelsize *= rect[3] ** 0.5
     subax.xaxis.set_tick_params(labelsize=max(min_labelsize, x_labelsize))
     subax.yaxis.set_tick_params(labelsize=max(min_labelsize, y_labelsize))
     return subax
 
 
-def add_pixel_kde(ax,
-                  rect: list[float],
-                  data_list: list[np.ndarray],
-                  min_labelsize: int,
-                  plot_xmax_value: int = None,
-                  plot_xmin_value: int = None,
-                  plot_kwargs_list=None,
-                  color_list=None,
-                  label_list=None,
-                  color_xtick='white'):
+def add_pixel_kde(
+    ax,
+    rect: list[float],
+    data_list: list[np.ndarray],
+    min_labelsize: int,
+    plot_xmax_value: int = None,
+    plot_xmin_value: int = None,
+    plot_kwargs_list=None,
+    color_list=None,
+    label_list=None,
+    color_xtick="white",
+):
     """
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
@@ -84,7 +98,7 @@ def add_pixel_kde(ax,
 
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
 
-    inset_ax.tick_params(axis='x', colors=color_xtick)
+    inset_ax.tick_params(axis="x", colors=color_xtick)
     # xmin, xmax = inset_ax.get_xlim()
 
     if plot_xmax_value is not None:
@@ -106,22 +120,29 @@ def add_pixel_kde(ax,
         else:
             xmin_data = xmin_data[0] - 1
 
-    for datak, colork, labelk, plot_kwargsk in zip(data_list, color_list, label_list, plot_kwargs_list):
-        sns.kdeplot(data=datak.reshape(-1, ),
-                    ax=inset_ax,
-                    color=colork,
-                    label=labelk,
-                    clip=(xmin_data, None),
-                    **plot_kwargsk)
+    for datak, colork, labelk, plot_kwargsk in zip(
+        data_list, color_list, label_list, plot_kwargs_list
+    ):
+        sns.kdeplot(
+            data=datak.reshape(
+                -1,
+            ),
+            ax=inset_ax,
+            color=colork,
+            label=labelk,
+            clip=(xmin_data, None),
+            **plot_kwargsk,
+        )
 
-    inset_ax.set_aspect('auto')
-    inset_ax.set_xlim([xmin_data, xmax_data])  #xmin=0,xmax= xmax_data
+    inset_ax.set_aspect("auto")
+    inset_ax.set_xlim([xmin_data, xmax_data])  # xmin=0,xmax= xmax_data
     inset_ax.set_xbound(lower=xmin_data, upper=xmax_data)
 
     xticks = inset_ax.get_xticks()
     inset_ax.set_xticks([xticks[0], xticks[-1]])
     clean_for_xaxis_plot(inset_ax)
     return inset_ax
+
 
 def clean_for_xaxis_plot(inset_ax):
     """
@@ -130,10 +151,9 @@ def clean_for_xaxis_plot(inset_ax):
     # Removing y-axes ticks and text
     inset_ax.set_yticklabels([])
     inset_ax.tick_params(left=False, right=False)
-    inset_ax.set_ylabel('')
+    inset_ax.set_ylabel("")
 
     # removing the axes border lines.
-    inset_ax.spines['top'].set_visible(False)
-    inset_ax.spines['right'].set_visible(False)
-    inset_ax.spines['left'].set_visible(False)
-
+    inset_ax.spines["top"].set_visible(False)
+    inset_ax.spines["right"].set_visible(False)
+    inset_ax.spines["left"].set_visible(False)
