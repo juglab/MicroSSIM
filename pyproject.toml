@@ -50,7 +50,7 @@ dependencies = [
 dev = ["pre-commit", "pytest", "pytest-cov"]
 
 # examples
-examples = ["jupyter"]
+examples = ["jupyter", "seaborn", "pooch", "matplotlib", "tifffile"]
 
 [project.urls]
 homepage = "https://github.com/juglab/MicroSSIM"
