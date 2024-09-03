@@ -370,15 +370,16 @@ def _ssim_with_c3(
         elements=elements,
     )
 
+# TODO return just SSIM with return_individual_components=True
 def compute_ssim(
         elements: SSIMElements,        
         *,
         alpha: float = 1.,
         win_size: Optional[int] = None,
         gaussian_weights: bool = False,
-        individual_components: bool = False,
+        return_individual_components: bool = False,
         **kwargs,
-    ) -> Union[NDArray, SSIM]:
+    ) -> Union[NDArray, tuple[NDArray, SSIM]]:
     """Compute SSIM from its elements.
 
     Code adapted from `skimage.metrics.structural_similarity` under BSD-3-Clause
@@ -397,7 +398,7 @@ def compute_ssim(
     gaussian_weights : bool, default = False
         If True, each patch has its mean and variance spatially weighted by a
         normalized Gaussian kernel of width sigma=1.5.
-    individual_components : bool, default = False
+    return_individual_components : bool, default = False
         If True, return the individual SSIM components.
 
     Other Parameters
@@ -440,10 +441,10 @@ def compute_ssim(
     pad = (win_size - 1) // 2
 
     # compute (weighted) mean of ssim. Use float64 for accuracy.
-    ssim.SSIM = crop(ssim.SSIM, pad)
+    #ssim.SSIM = crop(ssim.SSIM, pad)
     mean_ssim = ssim.SSIM.mean(dtype=np.float64)
 
-    if individual_components:
+    if return_individual_components:
         return mean_ssim, ssim
     else:
         return mean_ssim

@@ -20,6 +20,23 @@ def test_get_ri_factor(data_range, image_1, image_2, scaling):
     assert np.isclose(abs(ri_factor * scaling), 1.0, atol=1e-2)
 
 
+
+def test_global_ri_different_types(image_1, image_2):
+    """Test that an error is raised if the two images have different types."""
+    with pytest.raises(ValueError):
+        get_global_ri_factor(image_1, [image_2])
+
+
+def test_global_ri_different_shapes(image_1, image_2):
+    """Test that an error is raised if the two images have different shapes."""
+    with pytest.raises(ValueError):
+        get_global_ri_factor(image_1, image_2[:10])
+
+def test_global_ri_different_lengths(image_1, image_2):
+    """Test that an error is raised if the two images have different lengths."""
+    with pytest.raises(ValueError):
+        get_global_ri_factor([image_1], [image_2, image_2])
+
 # TODO: implement tests
 @pytest.mark.parametrize("scaling", [1, 10, 100])
 def test_global_ri_factor(data_range, image_1, image_2, scaling):

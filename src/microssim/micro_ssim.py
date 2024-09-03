@@ -22,7 +22,7 @@ def micro_structural_similarity(
     channel_axis=None,
     gaussian_weights=True,
     ri_factor: Optional[float] = None,
-    individual_components: bool = False,
+    return_individual_components: bool = False,
     **kwargs,
 ) -> Union[NDArray, SSIM]:
     """
@@ -51,7 +51,7 @@ def micro_structural_similarity(
     gaussian_weights : bool, optional
         If True, each patch has its mean and variance spatially weighted by a
         normalized Gaussian kernel of width sigma=1.5.
-    individual_components : bool, default = False
+    return_individual_components : bool, default = False
         If True, return the individual SSIM components.
 
     Other Parameters
@@ -87,7 +87,7 @@ def micro_structural_similarity(
     return compute_ssim(
         elements,
         alpha=ri_factor,
-        individual_components=individual_components,
+        return_individual_components=return_individual_components,
     )
 
 

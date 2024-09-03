@@ -1,6 +1,7 @@
 """Range invariant factor computation, corresponding to the alpha paramter of
 MicroSSIM."""
 
+from typing import Union
 import numpy as np
 from numpy.typing import NDArray
 from scipy.optimize import minimize
@@ -118,22 +119,21 @@ def _aggregate_ssim_elements(
     return global_elements
 
 
-# TODO only works for linear arrays?
 def get_global_ri_factor(
-    gt: NDArray,
-    pred: NDArray,
+    gt: Union[list[NDArray], NDArray],
+    pred: Union[list[NDArray], NDArray],
     **ssim_kwargs,
 ) -> float:
     """
     Compute a global range invariant factor.
 
-    The inputs can either be images, or linearized images that are concatenated.
+    The inputs can either be arrays or list of arrays.
 
     Parameters
     ----------
-    gt : numpy.ndarray
+    gt : numpy.ndarray or list of numpy.ndarray
         Reference array.
-    pred : numpy.ndarray
+    pred : numpy.ndarray or list of numpy.ndarray
         Array to be compared to the reference.
     **ssim_kwargs : Any
         Additional arguments to pass to the SSIM computation.
@@ -146,13 +146,27 @@ def get_global_ri_factor(
     Raises
     ------
     ValueError
-        If the ground-truth and prediction arrays have different shapes.
+        If the ground-truth and prediction arrays have different types, lengths or 
+        shapes.
     """
-    if gt.shape != pred.shape:
+    if type(gt) != type(pred):
         raise ValueError(
-            f"Ground-truth and prediction arrays must have the same "
-            f"shape (got {gt.shape} and {pred.shape}, respectively)."
+            f"Ground-truth and prediction arrays must have the same type "
+            f"(got {type(gt)} and {type(pred)}, respectively)."
         )
+    
+    if isinstance(gt, list):
+        if len(gt) != len(pred):
+            raise ValueError(
+                f"Ground-truth and prediction lists must have the same length "
+                f"(got {len(gt)} and {len(pred)}, respectively)."
+            )
+    else: 
+        if gt.shape != pred.shape:
+            raise ValueError(
+                f"Ground-truth and prediction arrays must have the same "
+                f"shape (got {gt.shape} and {pred.shape}, respectively)."
+            )
 
     # aggregate the SSIM elements
     elements = _aggregate_ssim_elements(gt, pred, **ssim_kwargs)
