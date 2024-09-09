@@ -29,12 +29,3 @@ def mse_based_range_invariant_structural_similarity(
         return_individual_components=return_individual_components,
         **kwargs,
     )
-
-
-def remove_background(x, pmin=3, dtype=np.float32):
-    mi = np.percentile(x, pmin, keepdims=True)
-    if dtype is not None:
-        x = x.astype(dtype, copy=False)
-        mi = dtype(mi) if np.isscalar(mi) else mi.astype(dtype, copy=False)
-        x = x - mi
-    return x
