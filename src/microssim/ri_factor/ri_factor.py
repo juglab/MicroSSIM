@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from scipy.optimize import minimize
 from tqdm import tqdm
 
-from microssim.ssim.ssim_utils import SSIMElements, _ssim, compute_ssim_elements
+from microssim.ssim.ssim_utils import SSIMElements, _scaled_ssim, compute_ssim_elements
 
 
 def get_ri_factor(elements: SSIMElements) -> float:
@@ -29,7 +29,7 @@ def get_ri_factor(elements: SSIMElements) -> float:
     initial_guess = np.array([1])
     res = minimize(
         # _ssim(*args) returns an SSIM class, whose SSIM attribute is a numpy array
-        lambda *args: -1 * _ssim(*args).SSIM.mean(),
+        lambda *args: -1 * _scaled_ssim(*args).SSIM.mean(),
         initial_guess,
         args=elements,
     )

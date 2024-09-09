@@ -12,7 +12,6 @@ from numpy.typing import NDArray
 from scipy.ndimage import uniform_filter
 from skimage._shared.filters import gaussian
 from skimage._shared.utils import _supported_float_type, check_shape_equality, warn
-from skimage.util.arraycrop import crop
 from skimage.util.dtype import dtype_range
 from typing_extensions import Self
 
@@ -43,9 +42,6 @@ class SSIMElements:
     C2: float
     """Algorithm parameter, C2."""
 
-    C3: Optional[float] = None
-    """Algorithm parameter, C3."""
-
     def get_args_tuple(self: Self) -> tuple[Union[NDArray, float], ...]:
         """Return the elements as a list.
 
@@ -60,8 +56,8 @@ class SSIMElements:
 
 
 @dataclass
-class SSIM:
-    """SSIM metrics result and its components."""
+class ScaledSSIM:
+    """Scaled SSIM metrics result and its components."""
 
     SSIM: NDArray
     """The SSIM value."""
@@ -270,14 +266,13 @@ def compute_ssim_elements(
         vy=vy,
         C1=C1,
         C2=C2,
-        C3=C3,
     )
 
 
-def _ssim(
+def _scaled_ssim(
     alpha: float,
     elements: SSIMElements,
-) -> SSIM:
+) -> ScaledSSIM:
     """Compute SSIM from its elements as done in scikit-image.
 
     Code adapted from `skimage.metrics.structural_similarity` under BSD-3-Clause
@@ -295,7 +290,7 @@ def _ssim(
     SSIM
         SSIM object.
     """
-    # compute SSIM as in scikit-image
+    # compute SSIM as in scikit-image, albeit with the scaling factor
     A1, A2, B1, B2 = (
         2 * alpha * elements.ux * elements.uy + elements.C1,
         2 * alpha * elements.vxy + elements.C2,
@@ -312,7 +307,7 @@ def _ssim(
     contrast = term / B2
     structure = A2 / term
 
-    return SSIM(
+    return ScaledSSIM(
         SSIM=S,
         luminance=luminance,
         contrast=contrast,
@@ -325,11 +320,14 @@ def _ssim(
 def _ssim_with_c3(
     alpha: float,
     elements: SSIMElements,
-) -> SSIM:
-    """Compute SSIM from its elements without C3.
+    C3: float,
+) -> ScaledSSIM:
+    """Compute SSIM with C3.
 
     C3 is comonly set to C2/2 (e.g. scikit-image and torch implementations). This
     function allows setting a different value for C3.
+
+    C3 could be computed as `C3 = None if K3 is None else (K3 * R) ** 2`.
 
     Parameters
     ----------
@@ -337,29 +335,28 @@ def _ssim_with_c3(
         MicroSSIM scaling parameter.
     elements : SSIMElements
         Elements used for computing the SSIM (means, stds, covars etc.).
+    C3 : float
+        C3 parameter.
 
     Returns
     -------
     SSIM
         SSIM object.
     """
-    if elements.C3 is None:
-        raise ValueError("C3 cannot be None in the SSIM elements, use `_ssim` instead.")
-
     lum_num = 2 * alpha * elements.ux * elements.uy + elements.C1
     lum_denom = elements.ux**2 + (alpha**2) * elements.uy**2 + elements.C1
 
     contrast_num = 2 * alpha * np.sqrt(elements.vx * elements.vy) + elements.C2
     contrast_denom = elements.vx + (alpha**2) * elements.vy + elements.C2
 
-    structure_denom = alpha * np.sqrt(elements.vx * elements.vy) + elements.C3
-    structure_num = alpha * elements.vxy + elements.C3
+    structure_denom = alpha * np.sqrt(elements.vx * elements.vy) + C3
+    structure_num = alpha * elements.vxy + C3
 
     num = lum_num * contrast_num * structure_num
     denom = lum_denom * contrast_denom * structure_denom
     S = num / denom
 
-    return SSIM(
+    return ScaledSSIM(
         SSIM=S,
         luminance=lum_num / lum_denom,
         contrast=contrast_num / contrast_denom,
@@ -369,16 +366,12 @@ def _ssim_with_c3(
     )
 
 
-# TODO return just SSIM with return_individual_components=True
 def compute_ssim(
     elements: SSIMElements,
     *,
     alpha: float = 1.0,
-    win_size: Optional[int] = None,
-    gaussian_weights: bool = False,
     return_individual_components: bool = False,
-    **kwargs,
-) -> Union[NDArray, tuple[NDArray, SSIM]]:
+) -> Union[NDArray, ScaledSSIM]:
     """Compute SSIM from its elements.
 
     Code adapted from `skimage.metrics.structural_similarity` under BSD-3-Clause
@@ -390,60 +383,24 @@ def compute_ssim(
         Elements used for computing the SSIM (means, stds, covars etc.).
     alpha : float
         MicroSSIM scaling parameter.
-    win_size : int or None, optional
-        The side-length of the sliding window used in comparison. Must be an
-        odd value. If `gaussian_weights` is True, this is ignored and the
-        window size will depend on `sigma`.
-    gaussian_weights : bool, default = False
-        If True, each patch has its mean and variance spatially weighted by a
-        normalized Gaussian kernel of width sigma=1.5.
     return_individual_components : bool, default = False
         If True, return the individual SSIM components.
-
-    Other Parameters
-    ----------------
-    K1 : float
-        Algorithm parameter, K1 (small constant).
-    K2 : float
-        Algorithm parameter, K2 (small constant).
-    sigma : float
-        Standard deviation for the Gaussian when `gaussian_weights` is True.
 
     Returns
     -------
     numpy.ndarray or SSIM
         SSIM value.
     """
-    sigma = kwargs.pop("sigma", 1.5)
-
-    # for comaptibility with the original skimage function, set optional variables
-    if gaussian_weights:
-        # Set to give an 11-tap filter with the default sigma of 1.5 to match
-        # Wang et. al. 2004.
-        truncate = 3.5
-
-    if win_size is None:
-        if gaussian_weights:
-            # set win_size used by crop to match the filter size
-            r = int(truncate * sigma + 0.5)  # radius as in ndimage
-            win_size = 2 * r + 1
-        else:
-            win_size = 7  # backwards compatibility
+    # TODO: scikit implements additional parameters (win_size, gaussian_weights, etc.)
+    # that change the value of the elements. This is not implemented here, but we need
+    # to consider their implementation to be closer to the SSIM.
+    # see skimage.metrics.structural_similarity for more details
 
     # compute SSIM
-    if elements.C3 is None:
-        ssim = _ssim(alpha=alpha, elements=elements)
-    else:
-        ssim = _ssim_with_c3(alpha=alpha, elements=elements)
-
-    # to avoid edge effects will ignore filter radius strip around edges
-    pad = (win_size - 1) // 2
-
-    # compute (weighted) mean of ssim. Use float64 for accuracy.
-    # ssim.SSIM = crop(ssim.SSIM, pad)
+    ssim = _scaled_ssim(alpha=alpha, elements=elements)
     mean_ssim = ssim.SSIM.mean(dtype=np.float64)
 
     if return_individual_components:
-        return mean_ssim, ssim
+        return ssim
     else:
         return mean_ssim

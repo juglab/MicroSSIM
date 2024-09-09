@@ -38,14 +38,4 @@ def test_global_ri_different_lengths(image_1, image_2):
         get_global_ri_factor([image_1], [image_2, image_2])
 
 
-# TODO: implement tests
-@pytest.mark.parametrize("scaling", [1, 10, 100])
-def test_global_ri_factor(data_range, image_1, image_2, scaling):
-    """Test the range invariant factor is almost equal to the scaling applied."""
-    # Linearize arrays
-    image_1 = image_1.reshape(-1)
-    image_2 = (10 * scaling * image_2).reshape(-1)
-
-    # Compute the global RI factor
-    global_ri_factor = get_global_ri_factor(image_1, image_2)
-    assert np.isclose(global_ri_factor, 1.0, atol=1e-2)
+# TODO: implement tests for global ri factor

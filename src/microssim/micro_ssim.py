@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from typing_extensions import Self
 
 from microssim.ri_factor.ri_factor import get_global_ri_factor, get_ri_factor
-from microssim.ssim import SSIM, compute_ssim, compute_ssim_elements
+from microssim.ssim import ScaledSSIM, compute_ssim, compute_ssim_elements
 
 # TODO add convenience function or example to show case the background percentile
 # TODO add docstring examples
@@ -26,7 +26,7 @@ def micro_structural_similarity(
     ri_factor: Optional[float] = None,
     return_individual_components: bool = False,
     **kwargs: dict,
-) -> Union[NDArray, SSIM]:
+) -> Union[NDArray, ScaledSSIM]:
     """
     Compute the MicroSSIM metrics.
 
