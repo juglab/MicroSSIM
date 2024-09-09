@@ -1,3 +1,5 @@
+"""MicroSSIM function and class."""
+
 from typing import Optional, Union
 
 import numpy as np
@@ -14,16 +16,16 @@ from microssim.ssim import SSIM, compute_ssim, compute_ssim_elements
 
 
 def micro_structural_similarity(
-    image1,
-    image2,
+    image1: NDArray,
+    image2: NDArray,
     *,
-    win_size=None,
-    data_range=None,
-    channel_axis=None,
-    gaussian_weights=True,
+    win_size: Optional[int] = None,
+    data_range: Optional[float] = None,
+    channel_axis: Optional[int] = None,
+    gaussian_weights: bool = False,
     ri_factor: Optional[float] = None,
     return_individual_components: bool = False,
-    **kwargs,
+    **kwargs: dict,
 ) -> Union[NDArray, SSIM]:
     """
     Compute the MicroSSIM metrics.
@@ -51,8 +53,18 @@ def micro_structural_similarity(
     gaussian_weights : bool, optional
         If True, each patch has its mean and variance spatially weighted by a
         normalized Gaussian kernel of width sigma=1.5.
+    ri_factor : float or None, optional
+        MicroSSIM scaling factor. If None, it will be estimated from the images.
     return_individual_components : bool, default = False
         If True, return the individual SSIM components.
+    **kwargs : dict
+        Additional keyword arguments passed to `compute_ssim_elements`, see Other
+        Parameters.
+
+    Returns
+    -------
+    numpy.ndarray or SSIM
+        SSIM value.
 
     Other Parameters
     ----------------
@@ -66,10 +78,6 @@ def micro_structural_similarity(
     sigma : float
         Standard deviation for the Gaussian when `gaussian_weights` is True.
 
-    Returns
-    -------
-    numpy.ndarray or SSIM
-        SSIM value.
     """
     elements = compute_ssim_elements(
         image1,
