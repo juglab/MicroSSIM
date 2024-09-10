@@ -2,7 +2,7 @@ import numpy as np
 
 from microssim import micro_structural_similarity
 
-from .mse_ri_ssim import get_mse_based_factor
+from .ri_factor import get_mse_ri_factor
 
 
 def mse_based_range_invariant_structural_similarity(
@@ -16,7 +16,7 @@ def mse_based_range_invariant_structural_similarity(
     return_individual_components=False,
     **kwargs,
 ):
-    ri_factor = get_mse_based_factor(target_img[None], pred_img[None])
+    ri_factor = get_mse_ri_factor(target_img[None], pred_img[None])
 
     return micro_structural_similarity(
         target_img,
