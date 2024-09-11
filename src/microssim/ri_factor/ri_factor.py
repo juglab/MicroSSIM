@@ -55,8 +55,21 @@ def _aggregate_ssim_elements(
     -------
     SSIMElements
         Aggregated SSIM elements.
+
+    Raises
+    ------
+    ValueError
+        If the ground-truth and prediction arrays are not lists or arrays of more than
+        2 dimensions.
     """
-    # data range taken from the ground truth
+    # make sure that we can iterate over the images
+    if not isinstance(gt, list) and gt.ndim <= 2:
+        raise ValueError(
+            "The ground-truth and prediction must either be list of arrays, or arrays "
+            "with more than 2 dimensions."
+        )
+
+    # remove data range from the kwargs
     if "data_range" in ssim_kwargs:
         ssim_kwargs.pop("data_range")
 
@@ -68,8 +81,8 @@ def _aggregate_ssim_elements(
 
     # loop over the array
     for idx in tqdm(range(len(gt))):
-        gt_i = gt[idx]
-        pred_i = pred[idx]
+        gt_i: NDArray = gt[idx]
+        pred_i: NDArray = pred[idx]
 
         # compute SSIM elements
         elements = compute_ssim_elements(
@@ -169,8 +182,18 @@ def get_global_ri_factor(
                 f"shape (got {gt.shape} and {pred.shape}, respectively)."
             )
 
-    # aggregate the SSIM elements
-    elements = _aggregate_ssim_elements(gt, pred, **ssim_kwargs)
+    # TODO should this be refactored?
+    if isinstance(gt, list) or gt.ndim > 2:
+        # aggregate the SSIM elements
+        elements = _aggregate_ssim_elements(gt, pred, **ssim_kwargs)
+    else:
+        # simply calculate them from the arrays
+        elements = compute_ssim_elements(
+            gt,
+            pred,
+            data_range=gt.max() - gt.min(),
+            **ssim_kwargs,
+        )
 
     # return the global range invariant factor
     return get_ri_factor(elements)

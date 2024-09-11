@@ -78,6 +78,9 @@ class ScaledSSIM:
     """The elements used for computing the SSIM."""
 
 
+# TODO since the function that computes SSIM does not use the various SSIM parameters
+# (channel, gaussian weights, win_size, etc.) they should probably be removed from
+# here
 def compute_ssim_elements(
     image1: NDArray,
     image2: NDArray,
@@ -366,16 +369,15 @@ def _ssim_with_c3(
     )
 
 
-def compute_ssim(
+def compute_scaled_ssim(
     elements: SSIMElements,
     *,
     alpha: float = 1.0,
     return_individual_components: bool = False,
 ) -> Union[NDArray, ScaledSSIM]:
-    """Compute SSIM from its elements.
+    """Compute scaled SSIM from SSIM elements and a scaling factor.
 
-    Code adapted from `skimage.metrics.structural_similarity` under BSD-3-Clause
-    license.
+    The SSIM elements are calculated using `compute_ssim_elements`.
 
     Parameters
     ----------
