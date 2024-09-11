@@ -6,9 +6,6 @@ from microssim.micro_ssim import (
     micro_structural_similarity,
 )
 
-# TODO: list of images, images with a S dimension, images with a C dimension
-# TODO: list of different shaped images
-
 
 def test_microssim_identity(ground_truth):
     """Test that the metrics returns 1 for the identity."""
@@ -111,7 +108,8 @@ def test_microssim_identity_list(ground_truth):
     mssim = MicroSSIM()
     mssim.fit(l, l)
 
-    assert np.isclose(mssim.score(l, l), 1.0)
+    for g, p in zip(l, l):
+        assert np.isclose(mssim.score(g, p), 1.0)
 
 
 def test_microssim_identity_stack(ground_truth):
@@ -130,7 +128,8 @@ def test_microssim_identity_stack(ground_truth):
     mssim = MicroSSIM()
     mssim.fit(l, l)
 
-    assert np.isclose(mssim.score(l, l), 1.0)
+    for g, p in zip(l, l):
+        assert np.isclose(mssim.score(g, p), 1.0)
 
 
 def test_microssim_different_arrays_0(random_image, ordered_image):
@@ -149,7 +148,7 @@ def test_agreement_similar_images(ground_truth, prediction):
     )
 
 
-# TODO why is agreement not perfect?
+# TODO why is the agreement not perfect?
 def test_agreement_different_images(random_image, ordered_image):
     """Test that micro_structural_similarity and MicroSSIM agree."""
     assert np.isclose(

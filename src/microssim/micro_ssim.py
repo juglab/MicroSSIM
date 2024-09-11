@@ -76,19 +76,6 @@ def _compute_micro_ssim(
     -------
     numpy.ndarray or SSIM
         SSIM value.
-
-    Other Parameters
-    ----------------
-    use_sample_covariance : bool
-        If True, normalize covariances by N-1 rather than, N where N is the
-        number of pixels within the sliding window.
-    K1 : float
-        Algorithm parameter, K1 (small constant).
-    K2 : float
-        Algorithm parameter, K2 (small constant).
-    sigma : float
-        Standard deviation for the Gaussian when `gaussian_weights` is True.
-
     """
     elements = compute_ssim_elements(
         image1,
@@ -108,6 +95,10 @@ def _compute_micro_ssim(
         alpha=ri_factor,
         return_individual_components=return_individual_components,
     )
+
+
+# TODO the function body could be replaced by using the MicroSSIM class (currently not
+# done in order to explore the possibility to have this method in skimage)
 
 
 # TODO users would probably want to know what offset and RI factor were applied, but
@@ -248,6 +239,19 @@ class MicroSSIM:
     estimated along the way, such as the offsets, the max value and the range-invariant
     factor.
 
+    Parameters
+    ----------
+    bg_percentile : int, default=3
+        Percentile of the image considered as background.
+    offset_gt : float, optional
+        Estimate of background pixel intensity in the ground truth image.
+    offset_pred : float, optional
+        Estimate of background pixel intensity in the prediction image.
+    max_val : float, optional
+        Maximum value used in normalization.
+    ri_factor : float, optional
+        MicroSSIM scaling factor.
+
     Attributes
     ----------
     _bg_percentile : int
@@ -323,7 +327,7 @@ class MicroSSIM:
 
         Returns
         -------
-        dictionary of {str: float}
+        {str: float}
             Dictionary containing the attributes of the class.
         """
         if not self._initialized:
@@ -340,98 +344,125 @@ class MicroSSIM:
             "ri_factor": self._ri_factor,
         }
 
-    def _compute_parameters(self, gt: np.ndarray, pred: np.ndarray):
-        if self._offset_gt is None:
-            self._offset_gt = np.percentile(gt, self._bg_percentile, keepdims=False)
-
-        if self._offset_pred is None:
-            self._offset_pred = np.percentile(pred, self._bg_percentile, keepdims=False)
-
-        if self._max_val is None:
-            self._max_val = (gt - self._offset_gt).max()
-
     def fit(
         self: Self,
         gt: Union[list[NDArray], NDArray],
         pred: Union[list[NDArray], NDArray],
     ) -> Self:
         """
-        Fit
+        Fit parameters to the images.
 
         Parameters
         ----------
-        gt : np.ndarray
-            _description_
-        pred : np.ndarray
-            _description_
+        gt : numpy.ndarray or list of numpy.ndarray
+            Reference arrays.
+        pred : numpy.ndarray or list of numpy.ndarray
+            Arrays to be comapred to the reference arrays.
+
+        Returns
+        -------
+        MicroSSIM
+            The instance of the class in order to allow chaining.
+
+        Raises
+        ------
+        ValueError
+            If the images are of different types (list or numpy.ndarray).
+        ValueError
+            If the lists of images have different lengths.
+        ValueError
+            If the images are arrays with different shapes.
+        ValueError
+            If the images are not 2D or 3D.
         """
-        assert self._initialized is False, "fit method can be called only once."
+        if type(gt) != type(pred):
+            raise ValueError("Images must be of the same type (list or numpy.ndarray).")
 
-        if isinstance(gt, np.ndarray):
-            self._compute_parameters(gt, pred)
+        if isinstance(gt, list):
+            if len(gt) != len(pred):
+                raise ValueError("Lists must have the same length.")
 
-        elif isinstance(gt, list):
-            gt_squished = np.concatenate(
-                [
-                    x.reshape(
-                        -1,
-                    )
-                    for x in gt
-                ]
-            )
-            pred_squished = np.concatenate(
-                [
-                    x.reshape(
-                        -1,
-                    )
-                    for x in pred
-                ]
-            )
-            self._compute_parameters(gt_squished, pred_squished)
+            # linearize and concatenate the list of images
+            gt_proc = linearize_list(gt)
+            pred_proc = linearize_list(pred)
+        else:
+            if gt.shape != pred.shape:
+                raise ValueError(
+                    f"Images must have the same shape (got {gt.shape} and {pred.shape})."
+                )
 
-        self._fit(gt, pred)
+            if gt.ndim < 2 or gt.ndim > 3:
+                raise ValueError("Only 2D or 3D images are supported.")
+
+            gt_proc = gt
+            pred_proc = pred
+
+        # compute the offsets and maximum value
+        self._offset_gt, self._offset_pred, self._max_val = compute_norm_parameters(
+            gt_proc,
+            pred_proc,
+            self._bg_percentile,
+            self._offset_gt,
+            self._offset_pred,
+            self._max_val,
+        )
+        # normalize the images
+        gt_norm = normalize_min_max(gt, self._offset_gt, self._max_val)
+        pred_norm = normalize_min_max(pred, self._offset_pred, self._max_val)
+
+        # compute range-invariant factor
+        self._ri_factor = get_global_ri_factor(gt_norm, pred_norm)
+
         self._initialized = True
 
         return self
 
-    def normalize_prediction(self, pred: Union[list[np.ndarray], np.ndarray]):
-        if isinstance(pred, list):
-            assert isinstance(pred[0], np.ndarray), "List must contain numpy arrays."
-            return [self.normalize_prediction(x) for x in pred]
-
-        return (pred - self._offset_pred) / self._max_val
-
-    def normalize_gt(self, gt: Union[list[np.ndarray], np.ndarray]):
-        if isinstance(gt, list):
-            assert isinstance(gt[0], np.ndarray), "List must contain numpy arrays."
-            return [self.normalize_gt(x) for x in gt]
-
-        return (gt - self._offset_gt) / self._max_val
-
-    def _fit(self, gt: np.ndarray, pred: np.ndarray):
-        gt_norm = self.normalize_gt(gt)
-        pred_norm = self.normalize_prediction(pred)
-        self._ri_factor = get_global_ri_factor(gt_norm, pred_norm)
-
     def score(
         self,
-        gt: np.ndarray,
-        pred: np.ndarray,
+        gt: NDArray,
+        pred: NDArray,
         return_individual_components: bool = False,
-    ):
+    ) -> Union[float, ScaledSSIM]:
+        """Compute metrics between two arrays.
+
+        Parameters
+        ----------
+        gt : numpy.ndarray
+            Reference array.
+        pred : NDArray
+            Array to be compared to the reference array.
+        return_individual_components : bool, default=False
+            If True, return the individual SSIM components.
+
+        Returns
+        -------
+        float or ScaledSSIM
+            MicroSSIM metric between the arrays.
+
+        Raises
+        ------
+        ValueError
+            If the `fit` method has not been called before calling this method.
+        ValueError
+            If the groundtruth and prediction arrays have different shapes.
+        ValueError
+            If the arrays are not 2D or 3D.
+        """
         if not self._initialized:
             raise ValueError(
-                "fit method was not called before score method. Expected behaviour is to call fit \
-                  with ALL DATA and then call score(), with individual images.\
-                  Using all data for fitting ensures better estimation of ri_factor."
+                "MicroSSIM was not initialized, call the `fit` method first. It is "
+                "advised to run the `fit` method on whole dataset."
             )
-        assert (
-            gt.shape == pred.shape
-        ), "Groundtruth and prediction must have same shape."
-        assert len(gt.shape) == 2, "Only 2D images are supported."
 
-        gt_norm = self.normalize_gt(gt)
-        pred_norm = self.normalize_prediction(pred)
+        if gt.shape != pred.shape:
+            raise ValueError("Groundtruth and prediction must have same shape.")
+
+        if gt.ndim < 2 or gt.ndim > 3:
+            raise ValueError("Only 2D or 3D images are supported.")
+
+        gt_norm = normalize_min_max(gt, self._offset_gt, self._max_val)
+        pred_norm = normalize_min_max(pred, self._offset_pred, self._max_val)
+
         return _compute_micro_ssim(
             gt_norm,
             pred_norm,
