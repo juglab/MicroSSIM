@@ -226,7 +226,7 @@ def micro_structural_similarity(
             gt_norm,
             pred_norm,
             ri_factor=ri_factor,
-            data_range=gt_norm.max() - pred_norm.min(),
+            data_range=gt_norm.max() - gt_norm.min(),
             return_individual_components=return_individual_components,
         )
 
