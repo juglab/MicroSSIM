@@ -164,8 +164,8 @@ def boundary_color(ax_cur, color):
         spine.set_edgecolor(color)
 
 
-def get_zoomin_hw(img, zoomin_size=80):
-    rng = np.random.default_rng(42)
+def get_zoomin_hw(img, zoomin_size=80, seed=42):
+    rng = np.random.default_rng(seed)
 
     hw = None
     hw_std = None
