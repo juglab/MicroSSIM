@@ -7,87 +7,91 @@ from microssim.micro_ssim import (
 )
 
 
-def test_microssim_identity(ground_truth):
+def test_compute_microssim_identity(ground_truth, data_range):
     """Test that the metrics returns 1 for the identity."""
     assert np.isclose(
-        _compute_micro_ssim(ground_truth, ground_truth, data_range=65535), 1.0
+        _compute_micro_ssim(ground_truth, ground_truth, data_range=data_range), 1.0
     )
 
 
-def test_microssim_different():
-    """Test that the metrics returns 0 for totally different images."""
-    # create very different images
-    rng = np.random.default_rng(42)
-    image_1 = rng.integers(0, 65535, (100, 100))  # random image
-    image_2 = np.arange(100**2).reshape(100, 100)  # ordered image
+def test_compute_microssim_similar(ground_truth, prediction, data_range):
+    """Test that the metrics returns close to 1 for similar images."""
     assert np.isclose(
-        _compute_micro_ssim(image_1, image_2, data_range=65535), 0.0, atol=1e-2
+        _compute_micro_ssim(ground_truth, prediction, data_range=data_range),
+        1.0,
+        atol=1e-4,
     )
 
 
-def test_micro_structural_similarity_identity(ground_truth):
+def test_compute_microssim_different(random_image, rotated_image, data_range):
+    """Test that the metrics returns 0 for totally different images."""
+    assert np.isclose(
+        _compute_micro_ssim(random_image, rotated_image**2, data_range=data_range), 0.0
+    )
+
+
+def test_microssim_function_identity(ground_truth):
     """Test the micro structural similarity function on the identity."""
     assert np.isclose(micro_structural_similarity(ground_truth, ground_truth), 1.0)
 
 
-def test_micro_structural_similarity_identity_list(ground_truth):
+def test_microssim_function_identity_lists(ground_truth_list):
     """Test the micro structural similarity function on the identity."""
-    l = [
-        ground_truth,
-        ground_truth - 5,
-        ground_truth - 50,
-        ground_truth - 15,
-        ground_truth - 42,
-    ]
-
-    assert np.allclose(micro_structural_similarity(l, l), 1.0)
+    assert np.allclose(
+        micro_structural_similarity(ground_truth_list, ground_truth_list), 1.0
+    )
 
 
-def test_micro_structural_similarity_identity_stack(ground_truth):
+def test_microssim_function_identity_stacks(ground_truth_stack):
     """Test the micro structural similarity function on the identity."""
-    l = np.stack(
-        [
-            ground_truth,
-            ground_truth - 5,
-            ground_truth - 50,
-            ground_truth - 15,
-            ground_truth - 42,
-        ],
-        axis=0,
+    assert np.allclose(
+        micro_structural_similarity(ground_truth_stack, ground_truth_stack), 1.0
     )
 
-    assert np.allclose(micro_structural_similarity(l, l), 1.0)
 
-
-def test_micro_structural_similarity_similar_arrays(ground_truth, prediction):
-    """Test the micro structural similarity function on different arrays."""
+def test_microssim_function_similar(ground_truth, prediction):
+    """Test the micro structural similarity function on similar arrays."""
     assert np.isclose(
-        micro_structural_similarity(ground_truth, prediction), 1.0, atol=1e-2
+        micro_structural_similarity(ground_truth, prediction), 1.0, atol=1e-4
     )
 
 
-def test_micro_structural_similarity_different_arrays_0(random_image, ordered_image):
-    """Test that the metrics returns 0 for totally different images."""
-    assert np.isclose(
-        micro_structural_similarity(random_image, ordered_image), 0.0, atol=1e-2
+def test_microssim_function_similar_lists(ground_truth_list, prediction_list):
+    """Test the micro structural similarity function on similar list of arrays."""
+    assert np.allclose(
+        micro_structural_similarity(ground_truth_list, prediction_list), 1.0, atol=1e-4
     )
 
 
-def test_micro_structural_similarity_different_arrays_0_list():
+def test_microssim_function_similar_stacks(ground_truth_stack, prediction_stack):
+    """Test the micro structural similarity function on similar arrays."""
+    assert np.allclose(
+        micro_structural_similarity(ground_truth_stack, prediction_stack),
+        1.0,
+        atol=1e-4,
+    )
+
+
+def test_microssim_function_different(random_image, rotated_image):
     """Test that the metrics returns 0 for totally different images."""
-    # create very different images
-    rng = np.random.default_rng(42)
-
-    l1 = []
-    l2 = []
-    for i in range(3, 8):
-        l1.append(200 + rng.integers(0, 50_000, (i * 10, i * 10)))  # random image
-        l2.append(np.arange((i * 10) ** 2).reshape((i * 10, i * 10)))  # ordered image
-
-    assert np.allclose(micro_structural_similarity(l1, l2), 0.0, atol=1e-2)
+    assert np.isclose(micro_structural_similarity(random_image, rotated_image), 0.0)
 
 
-def test_microssim_identity(ground_truth):
+def test_microssim_function_different_lists(random_image_list, rotated_image_list):
+    """Test that the metrics returns 0 for totally different image lists."""
+    assert np.allclose(
+        micro_structural_similarity(random_image_list, rotated_image_list), 0.0
+    )
+
+
+def test_microssim_function_different_stacks(random_image_stack, rotated_image_stack):
+    """Test that the metrics returns 0 for totally different image stacks."""
+    assert np.allclose(
+        micro_structural_similarity(random_image_stack, rotated_image_stack), 0.0
+    )
+
+
+def test_microssim_class_identity(ground_truth):
     """Test the MicroSSIM class on the identity."""
     mssim = MicroSSIM()
     mssim.fit(ground_truth, ground_truth)
@@ -95,49 +99,44 @@ def test_microssim_identity(ground_truth):
     assert np.isclose(mssim.score(ground_truth, ground_truth), 1.0)
 
 
-def test_microssim_identity_list(ground_truth):
+def test_microssim_class_identity_stack(ground_truth_stack):
     """Test the MicroSSIM class on the identity."""
-    l = [
-        ground_truth,
-        ground_truth - 5,
-        ground_truth - 50,
-        ground_truth - 15,
-        ground_truth - 42,
-    ]
-
     mssim = MicroSSIM()
-    mssim.fit(l, l)
+    mssim.fit(ground_truth_stack, ground_truth_stack)
 
-    for g, p in zip(l, l):
-        assert np.isclose(mssim.score(g, p), 1.0)
+    assert np.isclose(mssim.score(ground_truth_stack, ground_truth_stack), 1.0)
 
 
-def test_microssim_identity_stack(ground_truth):
-    """Test the MicroSSIM class on the identity."""
-    l = np.stack(
-        [
-            ground_truth,
-            ground_truth - 5,
-            ground_truth - 50,
-            ground_truth - 15,
-            ground_truth - 42,
-        ],
-        axis=0,
-    )
-
+def test_microssim_class_similar(ground_truth, prediction):
+    """Test the MicroSSIM class on the similar images."""
     mssim = MicroSSIM()
-    mssim.fit(l, l)
+    mssim.fit(ground_truth, prediction)
 
-    for g, p in zip(l, l):
-        assert np.isclose(mssim.score(g, p), 1.0)
+    assert np.isclose(mssim.score(ground_truth, prediction), 1.0, atol=1e-4)
 
 
-def test_microssim_different_arrays_0(random_image, ordered_image):
-    """Test that the metrics returns 0 for totally different images."""
+def test_microssim_class_similar_stacks(ground_truth_stack, prediction_stack):
+    """Test the MicroSSIM class on the identical stacks."""
     mssim = MicroSSIM()
-    mssim.fit(random_image, ordered_image)
+    mssim.fit(ground_truth_stack, prediction_stack)
 
-    assert np.isclose(mssim.score(random_image, ordered_image), 0.0, atol=1e-2)
+    assert np.isclose(mssim.score(ground_truth_stack, prediction_stack), 1.0, atol=1e-4)
+
+
+def test_microssim_class_different(random_image, rotated_image):
+    """Test the MicroSSIM class on the vastly different images."""
+    mssim = MicroSSIM()
+    mssim.fit(random_image, rotated_image)
+
+    assert np.isclose(mssim.score(random_image, rotated_image), 0)
+
+
+def test_microssim_class_different_stacks(random_image_stack, rotated_image_stack):
+    """Test the MicroSSIM class on the identical stacks."""
+    mssim = MicroSSIM()
+    mssim.fit(random_image_stack, rotated_image_stack)
+
+    assert np.isclose(mssim.score(random_image_stack, rotated_image_stack), 0)
 
 
 def test_agreement_similar_images(ground_truth, prediction):
@@ -148,11 +147,9 @@ def test_agreement_similar_images(ground_truth, prediction):
     )
 
 
-# TODO why is the agreement not perfect?
-def test_agreement_different_images(random_image, ordered_image):
+def test_agreement_different_images(random_image, rotated_image):
     """Test that micro_structural_similarity and MicroSSIM agree."""
     assert np.isclose(
-        micro_structural_similarity(random_image, ordered_image),
-        MicroSSIM().fit(random_image, ordered_image).score(random_image, ordered_image),
-        atol=1e-3,
+        micro_structural_similarity(random_image, rotated_image),
+        MicroSSIM().fit(random_image, rotated_image).score(random_image, rotated_image),
     )

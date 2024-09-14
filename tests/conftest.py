@@ -6,6 +6,11 @@ from numpy.typing import NDArray
 
 
 @pytest.fixture
+def rng() -> np.random.Generator:
+    return np.random.default_rng(42)
+
+
+@pytest.fixture
 def data_range() -> int:
     return 65535
 
@@ -16,27 +21,87 @@ def real_scaling() -> float:
 
 
 @pytest.fixture
-def ground_truth(data_range) -> NDArray:
+def ground_truth(rng: np.random.Generator, data_range) -> NDArray:
     """A random image."""
-    rng = np.random.default_rng(42)
     return rng.integers(0, data_range, (100, 100))
 
 
 @pytest.fixture
-def prediction(ground_truth, real_scaling) -> NDArray:
-    """A random image similar to image_1, albeit with noise and a different
+def prediction(rng: np.random.Generator, ground_truth, real_scaling) -> NDArray:
+    """An image similar to the ground_truth, albeit with noise and a different
     scaling."""
-    rng = np.random.default_rng(42)
     return rng.poisson(ground_truth) / real_scaling
 
 
 @pytest.fixture
-def random_image(data_range) -> NDArray:
-    """A random image."""
-    rng = np.random.default_rng(42)
-    return 200 + rng.integers(0, data_range - 200, (8, 8))
+def ground_truth_list(rng: np.random.Generator, data_range) -> list[NDArray]:
+    """A list of random images with different sizes."""
+    l = []
+    for i in range(3, 8):
+        l.append(rng.integers(0, data_range, (10 * i, 10 * i)))
+
+    return l
 
 
 @pytest.fixture
-def ordered_image() -> NDArray:
-    return np.arange(8**2).reshape(8, 8)
+def prediction_list(
+    rng: np.random.Generator, ground_truth_list, real_scaling
+) -> list[NDArray]:
+    """A list of images similar to the ground_truth_list, albeit with noise and a
+    different scaling."""
+    return [rng.poisson(g_i) / real_scaling for g_i in ground_truth_list]
+
+
+@pytest.fixture
+def ground_truth_stack(rng: np.random.Generator, data_range) -> NDArray:
+    """A stack of random images."""
+    return rng.integers(0, data_range, (9, 100, 100))
+
+
+@pytest.fixture
+def prediction_stack(
+    rng: np.random.Generator, ground_truth_stack, real_scaling
+) -> NDArray:
+    """A stack of images similar to the ground_truth_stack, albeit with noise and a
+    different scaling."""
+    return rng.poisson(ground_truth_stack) / real_scaling
+
+
+@pytest.fixture
+def random_image(rng: np.random.Generator, data_range) -> NDArray:
+    """A random image."""
+    return 200 + rng.integers(0, data_range - 200, (32, 32))
+
+
+@pytest.fixture
+def rotated_image(random_image) -> NDArray:
+    """Rotated image."""
+    return np.rot90(random_image**2)
+
+
+@pytest.fixture
+def random_image_list(rng: np.random.Generator, data_range) -> list[NDArray]:
+    """A list of random images."""
+    l = []
+    for i in range(3, 8):
+        l.append(200 + rng.integers(0, data_range - 200, (10 * i, 10 * i)))
+
+    return l
+
+
+@pytest.fixture
+def rotated_image_list(random_image_list) -> list[NDArray]:
+    """Rotated list of images."""
+    return [np.rot90(r_i**2) for r_i in random_image_list]
+
+
+@pytest.fixture
+def random_image_stack(rng: np.random.Generator, data_range) -> NDArray:
+    """A stack of random images."""
+    return 200 + rng.integers(0, data_range - 200, (9, 32, 32))
+
+
+@pytest.fixture
+def rotated_image_stack(random_image_stack) -> NDArray:
+    """Rotated stack of images."""
+    return np.rot90(random_image_stack**2, axes=(1, 2))

@@ -18,6 +18,7 @@ from microssim.ssim import ScaledSSIM, compute_scaled_ssim, compute_ssim_element
 # TODO add docstring examples
 # TODO function micro_structural_similarity with the bg_factor and the calculation,
 # would be more handy
+# TODO 3D dims will have issue with skimage ssim if win_size is not provided
 
 
 # TODO the various parameters inherited from skimage are not used in the reconstruction
@@ -113,7 +114,7 @@ def micro_structural_similarity(
     max_val: Optional[float] = None,
     ri_factor: Optional[float] = None,
     return_individual_components: bool = False,
-) -> float:
+) -> Union[float, ScaledSSIM, list[float], list[ScaledSSIM]]:
     """
     Compute the mean MicroSSIM metric between two images.
 
@@ -152,19 +153,10 @@ def micro_structural_similarity(
 
     Returns
     -------
-    float or list of float
-        Mean MicroSSIM metric between the images.
-
-    Raises
-    ------
-    ValueError
-        If the images are of different types (list or numpy.ndarray).
-    ValueError
-        If the lists of images have different lengths.
-    ValueError
-        If the images are arrays with different shapes.
-    ValueError
-        If the images are not 2D or 3D.
+    float or list of float or ScaledSSIM or list of ScaledSSIM
+        Mean MicroSSIM metric between the images, either as a list if the input are
+        lists or array with more than 2 dimensions. The return type can be either
+        float or ScaledSSIM depending on the `return_individual_components` parameter.
 
     Examples
     --------
@@ -175,62 +167,35 @@ def micro_structural_similarity(
     >>> pred = rng.poisson(gt) / 10. - 100
     >>> micro_structural_similarity(gt, pred)
     """
-    if type(gt) != type(pred):
-        raise ValueError("Images must be of the same type (list or numpy.ndarray).")
-
-    if isinstance(gt, list):
-        if len(gt) != len(pred):
-            raise ValueError("Lists must have the same length.")
-
-        # linearize and concatenate the list of images
-        gt_proc = linearize_list(gt)
-        pred_proc = linearize_list(pred)
-    else:
-        if gt.shape != pred.shape:
-            raise ValueError(
-                f"Images must have the same shape (got {gt.shape} and {pred.shape})."
-            )
-
-        if gt.ndim < 2 or gt.ndim > 3:
-            raise ValueError("Only 2D or 3D images are supported.")
-
-        gt_proc = gt
-        pred_proc = pred
-
-    # compute the offsets and maximum value
-    offset_gt, offset_pred, max_val = compute_norm_parameters(
-        gt_proc, pred_proc, bg_percentile, offset_gt, offset_pred, max_val
+    # generate parameters for the metrics computation
+    micro_ssim = MicroSSIM(
+        bg_percentile=bg_percentile,
+        offset_gt=offset_gt,
+        offset_pred=offset_pred,
+        max_val=max_val,
+        ri_factor=ri_factor,
     )
-
-    # normalize the images
-    gt_norm = normalize_min_max(gt, offset_gt, max_val)
-    pred_norm = normalize_min_max(pred, offset_pred, max_val)
-
-    # compute range-invariant factor
-    ri_factor = get_global_ri_factor(gt_norm, pred_norm)
+    micro_ssim.fit(gt, pred)
 
     # compute the MicroSSIM metric
     if isinstance(gt, list) or gt.ndim > 2:
         return [
-            _compute_micro_ssim(
+            micro_ssim.score(
                 gt_i,
                 pred_i,
-                ri_factor=ri_factor,
-                data_range=gt_i.max() - gt_i.min(),
                 return_individual_components=return_individual_components,
             )
-            for gt_i, pred_i in zip(gt_norm, pred_norm)
+            for gt_i, pred_i in zip(gt, pred)
         ]
     else:
-        return _compute_micro_ssim(
-            gt_norm,
-            pred_norm,
-            ri_factor=ri_factor,
-            data_range=gt_norm.max() - gt_norm.min(),
+        return micro_ssim.score(
+            gt,
+            pred,
             return_individual_components=return_individual_components,
         )
 
 
+# TODO why not accept lists in score?
 class MicroSSIM:
     """
     A class computing the MicroSSIM metric between images.
