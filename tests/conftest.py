@@ -23,7 +23,7 @@ def real_scaling() -> float:
 @pytest.fixture
 def ground_truth(rng: np.random.Generator, data_range) -> NDArray:
     """A random image."""
-    return rng.integers(0, data_range, (100, 100))
+    return rng.integers(0, data_range, (256, 256))
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def prediction_stack(
 @pytest.fixture
 def random_image(rng: np.random.Generator, data_range) -> NDArray:
     """A random image."""
-    return 200 + rng.integers(0, data_range - 200, (32, 32))
+    return 200 + rng.integers(0, data_range - 200, (256, 256))
 
 
 @pytest.fixture

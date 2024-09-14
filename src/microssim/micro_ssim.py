@@ -70,8 +70,8 @@ def _compute_micro_ssim(
     return_individual_components : bool, default = False
         If True, return the individual SSIM components.
     **kwargs : dict
-        Additional keyword arguments passed to `compute_ssim_elements`, see Other
-        Parameters.
+        Additional keyword arguments passed to the SSIM computation, following skimage
+        SSIM function's signature.
 
     Returns
     -------
@@ -387,8 +387,9 @@ class MicroSSIM:
         gt: NDArray,
         pred: NDArray,
         return_individual_components: bool = False,
+        **kwargs: dict,
     ) -> Union[float, ScaledSSIM]:
-        """Compute metrics between two arrays.
+        """Compute the metrics between two arrays.
 
         Parameters
         ----------
@@ -398,6 +399,9 @@ class MicroSSIM:
             Array to be compared to the reference array.
         return_individual_components : bool, default=False
             If True, return the individual SSIM components.
+        **kwargs : dict
+            Additional keyword arguments passed to the SSIM computation, following
+            skimage SSIM function's signature.
 
         Returns
         -------
@@ -416,11 +420,12 @@ class MicroSSIM:
         if not self._initialized:
             raise ValueError(
                 "MicroSSIM was not initialized, call the `fit` method first. It is "
-                "advised to run the `fit` method on whole dataset."
+                "advised to run the `fit` method on entire datasets rather than on "
+                "pairs of images."
             )
 
         if gt.shape != pred.shape:
-            raise ValueError("Groundtruth and prediction must have same shape.")
+            raise ValueError("Groundtruth and prediction must have the same shape.")
 
         if gt.ndim < 2 or gt.ndim > 3:
             raise ValueError("Only 2D or 3D images are supported.")
@@ -434,4 +439,5 @@ class MicroSSIM:
             ri_factor=self._ri_factor,
             data_range=gt_norm.max() - gt_norm.min(),
             return_individual_components=return_individual_components,
+            **kwargs,
         )

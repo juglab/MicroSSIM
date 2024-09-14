@@ -37,7 +37,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "numpy",
+    "numpy<2",
     "scipy",
     "scikit-image",
     "torch",
