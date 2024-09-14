@@ -6,8 +6,8 @@ in microscopy, degraded images (e.g. lower signal to noise ratio) often have a d
 dynamic range than the original images. This can lead to a poor performance of SSIM.
 
 The metrics normalizes the images using background subtraction and a more appropriate 
-range estimation. It then estimates a range-invariant factor used to scale the image
-compared to the target (original image or ground truth). The metric is then computed
+range estimation. It then estimates a scaling factor used to scale the image
+to the target (original image or ground truth). The metric is then computed
 similarly to the SSIM. 
 
 MicroSSIM is easily extensible to other SSIM-like metrics, such as Multi-Scale SSIM 

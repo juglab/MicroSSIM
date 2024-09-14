@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def normalize_CARE(
+def normalize_care(
     x: NDArray,
     pmin: float = 3,
     pmax: float = 99.8,
