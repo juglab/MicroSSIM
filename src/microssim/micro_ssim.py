@@ -286,7 +286,7 @@ class MicroSSIM:
                     "provided."
                 )
 
-    def get_parameters_as_dict(self: Self) -> dict[str, float]:
+    def get_parameters(self: Self) -> dict[str, float]:
         """
         Return the attributes of the class as a dictionary.
 

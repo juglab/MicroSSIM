@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from microssim.micro_ssim import (
     MicroSSIM,
@@ -105,6 +106,103 @@ def test_microssim_class_identity_stack(ground_truth_stack):
     mssim.fit(ground_truth_stack, ground_truth_stack)
 
     assert np.isclose(mssim.score(ground_truth_stack, ground_truth_stack), 1.0)
+
+
+def test_microssim_class_nofit(ground_truth):
+    """Test that an error is raised if the fit method is not called."""
+    mssim = MicroSSIM()
+
+    with pytest.raises(ValueError):
+        mssim.score(ground_truth, ground_truth)
+
+
+def test_microssim_class_ri_provided_error():
+    """Test that an error is raised if the ri_factor is provided but not the other
+    parameters."""
+    with pytest.raises(ValueError):
+        MicroSSIM(ri_factor=0.5)
+
+
+def test_microssim_class_parameters(ground_truth):
+    """Test that the parameters are correctly returned."""
+    mssim = MicroSSIM()
+    mssim.fit(ground_truth, ground_truth)
+
+    params = mssim.get_parameters()
+    assert "offset_pred" in params
+    assert "offset_gt" in params
+    assert "max_val" in params
+    assert "ri_factor" in params
+    assert "bg_percentile" in params
+
+
+def test_microssim_class_fit_error_different_types(ground_truth, ground_truth_list):
+    """Test that an error is raised if the ground truth and prediction are of different
+    types."""
+    mssim = MicroSSIM()
+
+    with pytest.raises(ValueError):
+        mssim.fit(ground_truth, ground_truth_list)
+
+
+def test_microssim_class_fit_error_different_list_lengths(
+    ground_truth_list, prediction_list
+):
+    """Test that an error is raised if the ground truth and prediction lists have
+    different lengths."""
+    mssim = MicroSSIM()
+
+    with pytest.raises(ValueError):
+        mssim.fit(ground_truth_list, prediction_list[:-2])
+
+
+def test_microssim_class_fit_error_different_shapes(ground_truth, prediction):
+    """Test that an error is raised if the ground truth and prediction have different
+    shapes."""
+    mssim = MicroSSIM()
+
+    with pytest.raises(ValueError):
+        mssim.fit(ground_truth, prediction[:-2, :-2])
+
+
+def test_microssim_class_score_error_different_shapes(ground_truth, prediction):
+    """Test that an error is raised if the ground truth and prediction have different
+    shapes."""
+    mssim = MicroSSIM()
+    mssim.fit(ground_truth, prediction)
+
+    with pytest.raises(ValueError):
+        mssim.score(ground_truth, prediction[:-2, :-2])
+
+
+def test_microssim_class_fit_error_more_than_3d(ground_truth_stack):
+    """Test that an error is raised if the ground truth and prediction have more than 3
+    dimensions."""
+    mssim = MicroSSIM()
+
+    with pytest.raises(ValueError):
+        mssim.fit(
+            ground_truth_stack[np.newaxis, ...], ground_truth_stack[np.newaxis, ...]
+        )
+
+
+def test_microssim_class_score_error_more_than_3d(ground_truth_stack):
+    """Test that an error is raised if the ground truth and prediction have more than 3
+    dimensions."""
+    mssim = MicroSSIM()
+    mssim.fit(ground_truth_stack, ground_truth_stack)
+
+    with pytest.raises(ValueError):
+        mssim.score(
+            ground_truth_stack[np.newaxis, ...], ground_truth_stack[np.newaxis, ...]
+        )
+
+
+def test_microssim_class_chaining(ground_truth, prediction):
+    """Test that the class can be chained."""
+    mssim = MicroSSIM().fit(ground_truth, prediction).score(ground_truth, prediction)
+
+    assert np.isclose(mssim, 1.0, atol=1e-4)
 
 
 def test_microssim_class_similar(ground_truth, prediction):

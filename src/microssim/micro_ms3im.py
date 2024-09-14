@@ -85,22 +85,11 @@ class MicroMS3IM(MicroSSIM):
         if gt.shape != pred.shape:
             raise ValueError("Groundtruth and prediction must have the same shape.")
 
-        if gt.ndim < 2 or gt.ndim > 2:
+        if gt.ndim != 2:
             raise ValueError("Only 2D images are supported.")
 
         if ms_ssim_kwargs is None:
             ms_ssim_kwargs = {}
-
-        if not self._initialized:
-            raise ValueError(
-                "fit method was not called before score method. Expected behaviour is to call fit \
-                  with ALL DATA and then call score(), with individual images.\
-                  Using all data for fitting ensures better estimation of ri_factor."
-            )
-        assert (
-            gt.shape == pred.shape
-        ), "Groundtruth and prediction must have same shape."
-        assert len(gt.shape) == 2, "Only 2D images are supported."
 
         # normalize the images
         gt_norm = normalize_min_max(gt, self._offset_gt, self._max_val)
