@@ -36,15 +36,23 @@ def test_microssim_function_identity(ground_truth):
     assert np.isclose(micro_structural_similarity(ground_truth, ground_truth), 1.0)
 
 
+def test_microssim_function_lists(ground_truth_list):
+    """Test that the micro structural similarity function returns the correct number
+    of results."""
+    assert len(
+        micro_structural_similarity(ground_truth_list, ground_truth_list)
+    ) == len(ground_truth_list)
+
+
 def test_microssim_function_identity_lists(ground_truth_list):
-    """Test the micro structural similarity function on the identity."""
+    """Test the micro structural similarity function on identical lists."""
     assert np.allclose(
         micro_structural_similarity(ground_truth_list, ground_truth_list), 1.0
     )
 
 
 def test_microssim_function_identity_stacks(ground_truth_stack):
-    """Test the micro structural similarity function on the identity."""
+    """Test the micro structural similarity function on identical stacks."""
     assert np.allclose(
         micro_structural_similarity(ground_truth_stack, ground_truth_stack), 1.0
     )

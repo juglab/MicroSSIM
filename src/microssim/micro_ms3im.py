@@ -1,6 +1,7 @@
 """MicroMS3IM metrics."""
 
 import warnings
+from typing import Optional, Union
 
 import torch
 from numpy.typing import NDArray
@@ -8,6 +9,93 @@ from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
 from microssim.image_processing import normalize_min_max
 from microssim.micro_ssim import MicroSSIM
+
+# TODO implement it in numpy?
+
+
+def micro_multiscale_structural_similarity(
+    gt: Union[NDArray, list[NDArray]],
+    pred: Union[NDArray, list[NDArray]],
+    *,
+    bg_percentile: int = 3,
+    offset_gt: Optional[float] = None,
+    offset_pred: Optional[float] = None,
+    max_val: Optional[float] = None,
+    ri_factor: Optional[float] = None,
+) -> Union[float, list[float]]:
+    """
+    Compute the mean MicroMS3IM metric between two images.
+
+    MicroSSIM computes a scaled version of the multiscale structural similarity index
+    (MS3IM), in which images are first normalized using an offset and maximum value. A
+    range-invariant factor is then estimated by maximizing a scaled MS3IM metrics
+    between the normalized images.
+
+    If the offsets are not provided, they are estimated from the images using the
+    background percentile value.
+
+    If the maximum value is not provided, it is estimated from the ground truth image
+    by checking the maximum value after background subtraction.
+
+    If the range-invariant factor is not provided, it is estimated from the normalized
+    images.
+
+    Parameters
+    ----------
+    gt : numpy.ndarray or list of numpy.ndarray
+        Reference image.
+    pred : numpy.ndarray or list of numpy.ndarray
+        Image being compared to the reference.
+    bg_percentile : int, default=3
+        Percentile of the image considered as background.
+    offset_gt : float or None, default=None
+        Estimate of background pixel intensity in the reference image.
+    offset_pred : float or None, default=None
+        Estimate of background pixel intensity in the second image.
+    max_val : float or None, default=None
+        Maximum value used in normalization.
+    ri_factor : float or None, default=None
+        Range-invariant factor.
+
+    Returns
+    -------
+    float or list of float
+        Mean MicroSSIM metric between the images, either as a list if the input are
+        lists or array with more than 2 dimensions.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from microssim import micro_multiscale_structural_similarity
+    >>> rng = np.random.default_rng(42)
+    >>> gt = 150 + rng.integers(0, data_range, (100, 100))
+    >>> pred = rng.poisson(gt) / 10. - 100
+    >>> micro_multiscale_structural_similarity(gt, pred)
+    """
+    # generate parameters for the metrics computation
+    micro_ssim = MicroMS3IM(
+        bg_percentile=bg_percentile,
+        offset_gt=offset_gt,
+        offset_pred=offset_pred,
+        max_val=max_val,
+        ri_factor=ri_factor,
+    )
+    micro_ssim.fit(gt, pred)
+
+    # compute the MicroMS3IM metric
+    if isinstance(gt, list) or gt.ndim > 2:
+        return [
+            micro_ssim.score(
+                gt_i,
+                pred_i,
+            )
+            for gt_i, pred_i in zip(gt, pred)
+        ]
+    else:
+        return micro_ssim.score(
+            gt,
+            pred,
+        )
 
 
 class MicroMS3IM(MicroSSIM):

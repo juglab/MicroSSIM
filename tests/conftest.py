@@ -22,7 +22,11 @@ def real_scaling() -> float:
 
 @pytest.fixture
 def ground_truth(rng: np.random.Generator, data_range) -> NDArray:
-    """A random image."""
+    """A random image.
+
+    Note: torch MS-SSIM requires images of shape larger than (160, 160) after the
+    convolution.
+    """
     return rng.integers(0, data_range, (256, 256))
 
 
@@ -35,9 +39,13 @@ def prediction(rng: np.random.Generator, ground_truth, real_scaling) -> NDArray:
 
 @pytest.fixture
 def ground_truth_list(rng: np.random.Generator, data_range) -> list[NDArray]:
-    """A list of random images with different sizes."""
+    """A list of random images with different sizes.
+
+    Note: torch MS-SSIM requires images of shape larger than (160, 160) after the
+    convolution.
+    """
     l = []
-    for i in range(3, 8):
+    for i in range(25, 28):
         l.append(rng.integers(0, data_range, (10 * i, 10 * i)))
 
     return l
@@ -54,8 +62,12 @@ def prediction_list(
 
 @pytest.fixture
 def ground_truth_stack(rng: np.random.Generator, data_range) -> NDArray:
-    """A stack of random images."""
-    return rng.integers(0, data_range, (9, 100, 100))
+    """A stack of random images.
+
+    Note: torch MS-SSIM requires images of shape larger than (160, 160) after the
+    convolution.
+    """
+    return rng.integers(0, data_range, (9, 256, 256))
 
 
 @pytest.fixture
@@ -69,7 +81,11 @@ def prediction_stack(
 
 @pytest.fixture
 def random_image(rng: np.random.Generator, data_range) -> NDArray:
-    """A random image."""
+    """A random image.
+
+    Note: torch MS-SSIM requires images of shape larger than (160, 160) after the
+    convolution.
+    """
     return 200 + rng.integers(0, data_range - 200, (256, 256))
 
 
@@ -81,9 +97,13 @@ def rotated_image(random_image) -> NDArray:
 
 @pytest.fixture
 def random_image_list(rng: np.random.Generator, data_range) -> list[NDArray]:
-    """A list of random images."""
+    """A list of random images.
+
+    Note: torch MS-SSIM requires images of shape larger than (160, 160) after the
+    convolution.
+    """
     l = []
-    for i in range(3, 8):
+    for i in range(25, 28):
         l.append(200 + rng.integers(0, data_range - 200, (10 * i, 10 * i)))
 
     return l
@@ -97,8 +117,12 @@ def rotated_image_list(random_image_list) -> list[NDArray]:
 
 @pytest.fixture
 def random_image_stack(rng: np.random.Generator, data_range) -> NDArray:
-    """A stack of random images."""
-    return 200 + rng.integers(0, data_range - 200, (9, 32, 32))
+    """A stack of random images.
+
+    Note: torch MS-SSIM requires images of shape larger than (160, 160) after the
+    convolution.
+    """
+    return 200 + rng.integers(0, data_range - 200, (9, 256, 256))
 
 
 @pytest.fixture
