@@ -16,8 +16,6 @@ from microssim.ssim import ScaledSSIM, compute_scaled_ssim, compute_ssim_element
 
 # TODO add convenience function or example to show case the background percentile
 # TODO add docstring examples
-# TODO function micro_structural_similarity with the bg_factor and the calculation,
-# would be more handy
 # TODO 3D dims will have issue with skimage ssim if win_size is not provided
 
 
@@ -30,7 +28,7 @@ def _compute_micro_ssim(
     win_size: Optional[int] = None,
     data_range: Optional[float] = None,
     channel_axis: Optional[int] = None,
-    gaussian_weights: bool = False,
+    gaussian_weights: bool = True,  # TODO why is it true by default?
     ri_factor: Optional[float] = None,
     return_individual_components: bool = False,
     **kwargs: dict,
@@ -98,12 +96,6 @@ def _compute_micro_ssim(
     )
 
 
-# TODO the function body could be replaced by using the MicroSSIM class (currently not
-# done in order to explore the possibility to have this method in skimage)
-
-
-# TODO users would probably want to know what offset and RI factor were applied, but
-# then they should use the class. Otherwise add return individual components.
 def micro_structural_similarity(
     gt: Union[NDArray, list[NDArray]],
     pred: Union[NDArray, list[NDArray]],
