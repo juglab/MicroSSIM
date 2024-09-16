@@ -38,20 +38,38 @@ pred = rng.poisson(gt) / 10
 result = micro_structural_similarity(gt, pred)
 print(f"MicroSSIM: {result} (convenience function)")
 
-# using the class
+# using the class allows fitting a large dataset, then scoring a subset
 microssim = MicroSSIM()
 microssim.fit(gt, pred) # fit the parameters
 
 for i in range(N):
-    score = microssim.score(gt[i], pred[i])
+    score = microssim.score(gt[i], pred[i]) # score a single pair
     print(f"MicroSSIM ({i}): {score}")
 
-# compare with SSIM
+# compare with SSIM from skimage
 for i in range(N):
     score = structural_similarity(gt[i], pred[i], data_range=65535)
     print(f"SSIM ({i}): {score}")
 ```
 
+The code is similar for MicroMS3IM.
+
+## Tips for deep learning
+
+MicroSSIM was developed in the context of deep-learning, in which SSIM is often used
+as a metrics to compare denoised and ground-truth images. The tips presented here are
+valid beyond deep-learning.
+
+The larger the dataset, the better the estimate of the scaling factor will be. Therefore,
+it is recommended to fit the metrics on the entire dataset (e.g. the whole training 
+dataset). Once the data fitted, the `MSSIM` class has registered the parameters used
+for normalization and scaling. You can then score a subset of the data (e.g. the validation
+or test datasets) using the `score` method.
+
+
+
 ## Cite us
+
+If you use MicroSSIM in your research, please cite us:
 
 Ashesh, Ashesh, Joran Deschamps, and Florian Jug. "MicroSSIM: Improved Structural Similarity for Comparing Microscopy Data." arXiv preprint arXiv:2408.08747 (2024). [link](https://arxiv.org/abs/2408.08747).
