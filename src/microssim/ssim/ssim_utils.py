@@ -18,8 +18,7 @@ from typing_extensions import Self
 
 @dataclass
 class SSIMElements:
-    """Dataclass holding the various values necessary for the computation of the
-    SSIM metrics."""
+    """Dataclass holding the various values necessary for the computation of the SSIM."""
 
     ux: NDArray
     """Weighted mean of the first image."""
@@ -120,18 +119,8 @@ def compute_ssim_elements(
     gaussian_weights : bool, optional
         If True, each patch has its mean and variance spatially weighted by a
         normalized Gaussian kernel of width sigma=1.5.
-
-    Other Parameters
-    ----------------
-    use_sample_covariance : bool
-        If True, normalize covariances by N-1 rather than, N where N is the
-        number of pixels within the sliding window.
-    K1 : float
-        Algorithm parameter, K1 (small constant).
-    K2 : float
-        Algorithm parameter, K2 (small constant).
-    sigma : float
-        Standard deviation for the Gaussian when `gaussian_weights` is True.
+    **kwargs : dict
+        Additional keyword arguments passed to the SSIM computation.
 
     Returns
     -------
@@ -286,7 +275,7 @@ def _scaled_ssim(
     alpha : float
         MicroSSIM scaling parameter.
     elements : SSIMElements
-        Elements used for computing the SSIM (means, stds, cov etc.)
+        Elements used for computing the SSIM (means, stds, cov etc.).
 
     Returns
     -------

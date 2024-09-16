@@ -26,10 +26,8 @@ def get_background(x: NDArray, percentage: float = 3) -> float:
 
 
 def remove_background(
-        x: NDArray, 
-        percentage: float = 3, 
-        dtype: type = np.float32
-    ) -> NDArray:
+    x: NDArray, percentage: float = 3, dtype: type = np.float32
+) -> NDArray:
     """
     Remove the background from an image.
 
@@ -47,7 +45,7 @@ def remove_background(
     NDArray
         The image with the background removed.
     """
-    
+
     # get percentile
     perc_val = get_background(x, percentage).astype(dtype, copy=False)
 

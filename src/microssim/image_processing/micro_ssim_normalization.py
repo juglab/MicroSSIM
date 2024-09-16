@@ -57,7 +57,7 @@ def compute_norm_parameters(
         Reference image.
     pred : NDArray
         Image being compared to the reference.
-    bg_percentile : float, default=3.
+    bg_percentile : float, default=3
         Percentile of the image considered as background.
     offset_gt : float or None, default=None
         Estimate of background pixel intensity in the reference image.

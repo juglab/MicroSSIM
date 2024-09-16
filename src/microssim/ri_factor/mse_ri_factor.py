@@ -1,5 +1,4 @@
-"""Utility functions for calculating a rescaling factor based on the mean squared error 
-(MSE)."""
+"""Utility functions for calculating a rescaling factor based on the mean squared error."""
 
 import numpy as np
 from numpy.typing import NDArray
@@ -32,7 +31,7 @@ def get_mse_ri_factor(gt: NDArray, pred: NDArray) -> NDArray:
     Compute MSE-based rescaling factor.
 
     The MSE-based rescaling factor is used to rescale the prediction to the same
-    range of values as the reference image. Adapted from 
+    range of values as the reference image. Adapted from
     https://github.com/juglab/ScaleInvPSNR.
 
     Parameters

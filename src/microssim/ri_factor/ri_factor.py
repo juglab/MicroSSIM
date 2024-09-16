@@ -1,5 +1,4 @@
-"""Range invariant factor computation, corresponding to the alpha paramter of
-MicroSSIM."""
+"""Range invariant factor computation."""
 
 from typing import Union
 
@@ -50,6 +49,8 @@ def _aggregate_ssim_elements(
         Reference array.
     pred : numpy.ndarray
         Array to be compared to the reference.
+    **ssim_kwargs : Any
+        Additional arguments to pass to the SSIM computation.
 
     Returns
     -------

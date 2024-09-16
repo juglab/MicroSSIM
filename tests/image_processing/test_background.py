@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from microssim.image_processing import get_background, remove_background
@@ -22,5 +21,3 @@ def test_remove_background():
     val = get_background(x, 10)
 
     assert np.allclose(y, x - val)
-
-
