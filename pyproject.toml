@@ -47,7 +47,12 @@ dependencies = [
 
 [project.optional-dependencies]
 # development dependencies and tooling
-dev = ["pre-commit", "pytest", "pytest-cov"]
+dev = [
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "sybil",      # doctesting
+]
 
 # examples
 examples = ["jupyter", "seaborn", "pooch", "matplotlib", "tifffile"]
