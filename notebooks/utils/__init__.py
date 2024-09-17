@@ -1,3 +1,5 @@
+"""Plot utilities used in the notebooks."""
+
 from .plot_utils import (
     add_pixel_kde,
     add_subplot_axes,

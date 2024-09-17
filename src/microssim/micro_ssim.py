@@ -383,6 +383,8 @@ class MicroSSIM:
     ) -> Union[float, ScaledSSIM]:
         """Compute the metrics between two arrays.
 
+        Only 2D arrays are supported.
+
         Parameters
         ----------
         gt : numpy.ndarray
@@ -407,7 +409,7 @@ class MicroSSIM:
         ValueError
             If the groundtruth and prediction arrays have different shapes.
         ValueError
-            If the arrays are not 2D or 3D.
+            If the arrays are not 2D.
         """
         if not self._initialized:
             raise ValueError(
@@ -419,8 +421,8 @@ class MicroSSIM:
         if gt.shape != pred.shape:
             raise ValueError("Groundtruth and prediction must have the same shape.")
 
-        if gt.ndim < 2 or gt.ndim > 3:
-            raise ValueError("Only 2D or 3D images are supported.")
+        if gt.ndim != 2:
+            raise ValueError("Only 2D images are supported.")
 
         gt_norm = normalize_min_max(gt, self._offset_gt, self._max_val)
         pred_norm = normalize_min_max(pred, self._offset_pred, self._max_val)

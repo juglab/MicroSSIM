@@ -113,7 +113,10 @@ def test_microssim_class_identity_stack(ground_truth_stack):
     mssim = MicroSSIM()
     mssim.fit(ground_truth_stack, ground_truth_stack)
 
-    assert np.isclose(mssim.score(ground_truth_stack, ground_truth_stack), 1.0)
+    for i in range(ground_truth_stack.shape[0]):
+        assert np.isclose(
+            mssim.score(ground_truth_stack[i], ground_truth_stack[i]), 1.0
+        )
 
 
 def test_microssim_class_nofit(ground_truth):
@@ -226,7 +229,10 @@ def test_microssim_class_similar_stacks(ground_truth_stack, prediction_stack):
     mssim = MicroSSIM()
     mssim.fit(ground_truth_stack, prediction_stack)
 
-    assert np.isclose(mssim.score(ground_truth_stack, prediction_stack), 1.0, atol=1e-4)
+    for i in range(ground_truth_stack.shape[0]):
+        assert np.isclose(
+            mssim.score(ground_truth_stack[i], prediction_stack[i]), 1.0, atol=1e-4
+        )
 
 
 def test_microssim_class_different(random_image, rotated_image):
@@ -242,7 +248,8 @@ def test_microssim_class_different_stacks(random_image_stack, rotated_image_stac
     mssim = MicroSSIM()
     mssim.fit(random_image_stack, rotated_image_stack)
 
-    assert np.isclose(mssim.score(random_image_stack, rotated_image_stack), 0)
+    for i in range(random_image_stack.shape[0]):
+        assert np.isclose(mssim.score(random_image_stack[i], rotated_image_stack[i]), 0)
 
 
 def test_agreement_similar_images(ground_truth, prediction):
