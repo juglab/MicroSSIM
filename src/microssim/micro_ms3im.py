@@ -5,12 +5,14 @@ from typing import Optional, Union
 
 import torch
 from numpy.typing import NDArray
+from torch import Tensor
 from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
 from microssim.image_processing import normalize_min_max
 from microssim.micro_ssim import MicroSSIM
 
 # TODO implement it in numpy?
+# TODO return types are torch.Tensor
 
 
 def micro_multiscale_structural_similarity(
