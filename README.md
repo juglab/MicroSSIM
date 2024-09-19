@@ -1,16 +1,16 @@
 # MicroSSIM
 
-MicroSSIM is an image metrics aimed at addressing the shortcominbs of the Structural
-Similarity Index (SSIM), in particular in the context of microscopy images. Indeed,
+MicroSSIM is an image measure aimed at addressing the shortcomings of the Structural
+Similarity Index Measure (SSIM), in particular in the context of microscopy images. Indeed,
 in microscopy, degraded images (e.g. lower signal to noise ratio) often have a different
 dynamic range than the original images. This can lead to a poor performance of SSIM.
 
-The metrics normalizes the images using background subtraction and a more appropriate 
+The measure normalizes the images using background subtraction and a more appropriate 
 range estimation. It then estimates a scaling factor used to scale the image
 to the target (original image or ground truth). The metric is then computed
 similarly to the SSIM. 
 
-MicroSSIM is easily extensible to other SSIM-like metrics, such as Multi-Scale SSIM 
+MicroSSIM is easily extensible to other SSIM-like measures, such as Multi-Scale SSIM 
 (MS-SSIM), for which we provide an example.
 
 See the [paper](https://arxiv.org/abs/2408.08747) for more details.
@@ -57,11 +57,11 @@ The code is similar for MicroMS3IM.
 ## Tips for deep learning
 
 MicroSSIM was developed in the context of deep-learning, in which SSIM is often used
-as a metrics to compare denoised and ground-truth images. The tips presented here are
+as a measure to compare denoised and ground-truth images. The tips presented here are
 valid beyond deep-learning.
 
 The larger the dataset, the better the estimate of the scaling factor will be. Therefore,
-it is recommended to fit the metrics on the entire dataset (e.g. the whole training 
+it is recommended to fit the measure on the entire dataset (e.g. the whole training 
 dataset). Once the data fitted, the `MSSIM` class has registered the parameters used
 for normalization and scaling. You can then score a subset of the data (e.g. the validation
 or test datasets) using the `score` method.
