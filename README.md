@@ -1,5 +1,13 @@
 # MicroSSIM
 
+[![License](https://img.shields.io/pypi/l/microssim.svg?color=green)](https://github.com/juglab/MicroSSIM/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/microssim.svg?color=green)](https://pypi.org/project/microssim)
+[![Python Version](https://img.shields.io/pypi/pyversions/microssim.svg?color=green)](https://python.org)
+[![CI](https://github.com/juglab/MicroSSIM/actions/workflows/ci.yml/badge.svg)](https://github.com/juglab/MicroSSIM/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/juglab/MicroSSIM/branch/main/graph/badge.svg)](https://codecov.io/gh/juglab/MicroSSIM)
+
+
+
 MicroSSIM is an image measure aimed at addressing the shortcomings of the Structural
 Similarity Index Measure (SSIM), in particular in the context of microscopy images. Indeed,
 in microscopy, degraded images (e.g. lower signal to noise ratio) often have a different
