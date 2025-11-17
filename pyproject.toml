@@ -19,7 +19,7 @@ name = "microssim"
 dynamic = ["version"]
 description = "Improved structural similarity metrics for comparing microscopy data."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "BSD-3-Clause" }
 authors = [
     { name = 'Ashesh' },
@@ -37,12 +37,16 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "numpy<2",
+    "numpy>=1.21",
     "scipy",
     "scikit-image",
     "torch",
     "torchmetrics",
     "tqdm",
+    "jupyterlab>=4.4.10",
+    "pooch>=1.8.2",
+    "matplotlib>=3.10.7",
+    "seaborn>=0.13.2",
 ]
 
 [project.optional-dependencies]
