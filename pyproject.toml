@@ -38,7 +38,7 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.21,<3.0.0",
-    "scipy<=1.16.3",
+    "scipy<=1.17.0",
     "scikit-image<=0.26.0",
     "torch>=2.5,<=2.9.1",
     "torchmetrics<=1.8.2",
